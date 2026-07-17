@@ -1552,7 +1552,7 @@ local function Paint(Chr, Plr)
 		local hpBg = Instance.new("BillboardGui")
 		hpBg.Name = Tag.."HP"
 		hpBg.Size = UDim2.new(0, 80, 0, 10)
-		hpBg.StudsOffset = Vector3.new(0, -3.5, 0)
+		hpBg.StudsOffset = Vector3.new(0, -4.5, 0)
 		hpBg.AlwaysOnTop = true
 		hpBg.ResetOnSpawn = false
 		hpBg.Enabled = Cfg.ShowHealth
