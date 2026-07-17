@@ -1,0 +1,1005 @@
+local P = game:GetService("Players")
+local LP = P.LocalPlayer
+local Tag, Cons, Chams = "Lsantas", {}, {}
+local UIS = game:GetService("UserInputService")
+local Tween = game:GetService("TweenService")
+local Run = game:GetService("RunService")
+local Mouse = LP:GetMouse()
+local C3 = Color3.fromRGB
+local HSV = Color3.fromHSV
+
+local isRunning = true
+
+if _G.UnloadChams then _G.UnloadChams() end
+if LP.PlayerGui:FindFirstChild("ChamsUI") then LP.PlayerGui:FindFirstChild("ChamsUI"):Destroy() end
+
+-- ===== CAMERA CONTAINER FOR HIGHLIGHTS & ESP (Bypasses Character Cleaning) =====
+local Container = workspace.CurrentCamera:FindFirstChild("LsantasVisuals")
+if not Container then
+	Container = Instance.new("Folder")
+	Container.Name = "LsantasVisuals"
+	Container.Parent = workspace.CurrentCamera
+end
+
+-- ===== SPLASH =====
+local SplashGui = Instance.new("ScreenGui")
+SplashGui.Name = "SplashScreen"
+SplashGui.ResetOnSpawn = false
+SplashGui.Parent = LP.PlayerGui
+SplashGui.IgnoreGuiInset = true
+SplashGui.DisplayOrder = 999
+
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(0, 600, 0, 200)
+Container.Position = UDim2.new(0.5, -300, 0.5, -100)
+Container.BackgroundTransparency = 1
+Container.Parent = SplashGui
+
+local TextFrame = Instance.new("Frame")
+TextFrame.Size = UDim2.new(1, 0, 1, 0)
+TextFrame.BackgroundTransparency = 1
+TextFrame.ZIndex = 2
+TextFrame.Parent = Container
+
+local Layout = Instance.new("UIListLayout")
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.VerticalAlignment = Enum.VerticalAlignment.Center
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.Padding = UDim.new(0, 4)
+Layout.Parent = TextFrame
+
+local MainText = Instance.new("TextLabel")
+MainText.Size = UDim2.new(1, 0, 0, 70)
+MainText.BackgroundTransparency = 1
+MainText.Text = "Made by Lsantas"
+MainText.TextColor3 = C3(255, 255, 255)
+MainText.TextTransparency = 1
+MainText.Font = Enum.Font.GothamBold
+MainText.TextSize = 64
+MainText.LayoutOrder = 1
+MainText.ZIndex = 3
+MainText.Parent = TextFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 3
+MainStroke.Color = C3(168, 85, 247)
+MainStroke.Transparency = 1
+MainStroke.Parent = MainText
+
+local SubText = Instance.new("TextLabel")
+SubText.Size = UDim2.new(1, 0, 0, 35)
+SubText.BackgroundTransparency = 1
+SubText.Text = "Lsantas Visuals"
+SubText.TextColor3 = C3(192, 132, 252)
+SubText.TextTransparency = 1
+SubText.Font = Enum.Font.GothamMedium
+SubText.TextSize = 24
+SubText.LayoutOrder = 2
+SubText.ZIndex = 3
+SubText.Parent = TextFrame
+
+local SubStroke = Instance.new("UIStroke")
+SubStroke.Thickness = 1.8
+SubStroke.Color = C3(120, 50, 200)
+SubStroke.Transparency = 1
+SubStroke.Parent = SubText
+
+local tIn = TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+Tween:Create(MainText, tIn, {TextTransparency = 0}):Play()
+Tween:Create(MainStroke, tIn, {Transparency = 0.4}):Play()
+Tween:Create(SubText, tIn, {TextTransparency = 0}):Play()
+Tween:Create(SubStroke, tIn, {Transparency = 0.5}):Play()
+task.wait(0.1)
+
+local pulseConn
+pulseConn = Run.RenderStepped:Connect(function(dt)
+	local time = tick()
+	local rot = math.sin(time * 1.5) * 1.5
+	
+	Container.Rotation = rot
+	
+	local colorHue = (time * 0.1) % 1
+	local pulseColor = HSV(colorHue, 0.6, 1)
+	MainStroke.Color = pulseColor
+	SubStroke.Color = HSV((colorHue + 0.15) % 1, 0.7, 0.9)
+end)
+task.wait(3.2)
+pulseConn:Disconnect()
+
+local tOut = TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+Tween:Create(MainText, tOut, {TextTransparency = 1}):Play()
+Tween:Create(MainStroke, tOut, {Transparency = 1}):Play()
+Tween:Create(SubText, tOut, {TextTransparency = 1}):Play()
+local fo = Tween:Create(SubStroke, tOut, {Transparency = 1})
+fo:Play()
+fo.Completed:Wait()
+SplashGui:Destroy()
+
+-- ===== CONFIG & STATE =====
+local Cfg = {
+	Enabled = true,
+	ShowNames = true,
+	ShowHealth = true,
+	FillTr = 0.5,
+	OutTr = 0.1,
+	ChamColor = C3(168, 85, 247),
+	OutlineColor = C3(255, 255, 255),
+	NameColor = C3(255, 255, 255)
+}
+local menuOpen = false
+
+-- ===== MAIN MENU UI =====
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ChamsUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Enabled = false
+ScreenGui.Parent = LP.PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 500, 0, 320)
+Frame.Position = UDim2.new(0.5, -250, 0.5, -160)
+Frame.BackgroundColor3 = C3(18, 18, 24)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = Frame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 1.5
+UIStroke.Color = C3(168, 85, 247)
+UIStroke.Transparency = 0.5
+UIStroke.Parent = Frame
+
+-- Header / Title Bar
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 42)
+Header.BackgroundColor3 = C3(24, 24, 32)
+Header.BorderSizePixel = 0
+Header.Parent = Frame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+HeaderCorner.Parent = Header
+
+local HeaderCover = Instance.new("Frame")
+HeaderCover.Size = UDim2.new(1, 0, 0, 10)
+HeaderCover.Position = UDim2.new(0, 0, 1, -10)
+HeaderCover.BackgroundColor3 = C3(24, 24, 32)
+HeaderCover.BorderSizePixel = 0
+HeaderCover.Parent = Header
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.7, 0, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Lsantas Visuals"
+Title.TextColor3 = C3(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 14
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = C3(150, 150, 160)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+CloseBtn.Parent = Header
+
+CloseBtn.MouseEnter:Connect(function()
+	Tween:Create(CloseBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {TextColor3 = C3(220, 50, 50)}):Play()
+end)
+CloseBtn.MouseLeave:Connect(function()
+	Tween:Create(CloseBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {TextColor3 = C3(150, 150, 160)}):Play()
+end)
+CloseBtn.MouseButton1Click:Connect(function()
+	menuOpen = false
+	ScreenGui.Enabled = false
+end)
+
+-- Custom Drag Script
+local dragInput, dragStart, startPos
+local function updateDrag(input)
+	local delta = input.Position - dragStart
+	Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+Header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragStart = input.Position
+		startPos = Frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragInput = nil
+			end
+		end)
+	end
+end)
+
+Header.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+Run.RenderStepped:Connect(function()
+	if dragInput and Frame.Visible then
+		updateDrag(dragInput)
+	end
+end)
+
+-- Sidebar
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 130, 1, -42)
+Sidebar.Position = UDim2.new(0, 0, 0, 42)
+Sidebar.BackgroundColor3 = C3(24, 24, 32)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Frame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 10)
+SidebarCorner.Parent = Sidebar
+
+local SidebarCover = Instance.new("Frame")
+SidebarCover.Size = UDim2.new(0, 10, 1, 0)
+SidebarCover.Position = UDim2.new(1, -10, 0, 0)
+SidebarCover.BackgroundColor3 = C3(24, 24, 32)
+SidebarCover.BorderSizePixel = 0
+SidebarCover.Parent = Sidebar
+
+-- Tab Container
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(1, -130, 1, -42)
+TabContainer.Position = UDim2.new(0, 130, 0, 42)
+TabContainer.BackgroundTransparency = 1
+TabContainer.Parent = Frame
+
+local Tabs, TabButtons = {}, {}
+
+local function SwitchTab(tabName)
+	for name, contentFrame in pairs(Tabs) do
+		contentFrame.Visible = (name == tabName)
+	end
+	for name, btn in pairs(TabButtons) do
+		local active = (name == tabName)
+		local targetColor = active and C3(168, 85, 247) or C3(200, 200, 205)
+		local targetBg = active and C3(35, 35, 45) or C3(24, 24, 32)
+		Tween:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {TextColor3 = targetColor, BackgroundColor3 = targetBg}):Play()
+	end
+end
+
+local function CreateTabButton(name, icon, tabName, order)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 36)
+	btn.Position = UDim2.new(0, 5, 0, 10 + (order - 1) * 42)
+	btn.BackgroundColor3 = C3(24, 24, 32)
+	btn.BorderSizePixel = 0
+	btn.Text = "  " .. icon .. "  " .. name
+	btn.TextColor3 = C3(200, 200, 205)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 12
+	btn.TextXAlignment = Enum.TextXAlignment.Left
+	btn.Parent = Sidebar
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+
+	TabButtons[tabName] = btn
+
+	btn.MouseButton1Click:Connect(function()
+		SwitchTab(tabName)
+	end)
+	
+	btn.MouseEnter:Connect(function()
+		if TabButtons[tabName].TextColor3 ~= C3(168, 85, 247) then
+			Tween:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(28, 28, 38)}):Play()
+		end
+	end)
+	btn.MouseLeave:Connect(function()
+		if TabButtons[tabName].TextColor3 ~= C3(168, 85, 247) then
+			Tween:Create(btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(24, 24, 32)}):Play()
+		end
+	end)
+end
+
+-- Create content frames for tabs
+for _, tabName in ipairs({"Chams", "Colors", "Settings"}) do
+	local f = Instance.new("ScrollingFrame")
+	f.Size = UDim2.new(1, -20, 1, -20)
+	f.Position = UDim2.new(0, 10, 0, 10)
+	f.BackgroundTransparency = 1
+	f.BorderSizePixel = 0
+	f.ScrollBarThickness = 4
+	f.ScrollBarImageColor3 = C3(168, 85, 247)
+	f.CanvasSize = UDim2.new(0, 0, 0, 0)
+	f.Visible = false
+	f.Parent = TabContainer
+	
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 12)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = f
+
+	list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		f.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y + 20)
+	end)
+	
+	Tabs[tabName] = f
+end
+
+CreateTabButton("VISUALS", "⚡", "Chams", 1)
+CreateTabButton("COLORS", "🎨", "Colors", 2)
+CreateTabButton("SETTINGS", "⚙️", "Settings", 3)
+
+-- ===== UI CREATION UTILS =====
+local function CreateToggle(parent, labelText, defaultVal, callback)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 36)
+	container.BackgroundTransparency = 1
+	container.Parent = parent
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.7, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = C3(220, 220, 225)
+	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+
+	local switchBg = Instance.new("TextButton")
+	switchBg.Size = UDim2.new(0, 42, 0, 22)
+	switchBg.Position = UDim2.new(1, -42, 0.5, -11)
+	switchBg.BackgroundColor3 = defaultVal and C3(168, 85, 247) or C3(40, 40, 50)
+	switchBg.Text = ""
+	switchBg.Parent = container
+
+	local bgCorner = Instance.new("UICorner")
+	bgCorner.CornerRadius = UDim.new(0, 11)
+	bgCorner.Parent = switchBg
+
+	local switchDot = Instance.new("Frame")
+	switchDot.Size = UDim2.new(0, 16, 0, 16)
+	switchDot.Position = defaultVal and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+	switchDot.BackgroundColor3 = C3(255, 255, 255)
+	switchDot.BorderSizePixel = 0
+	switchDot.Parent = switchBg
+
+	local dotCorner = Instance.new("UICorner")
+	dotCorner.CornerRadius = UDim.new(0, 8)
+	dotCorner.Parent = switchDot
+
+	local state = defaultVal
+	switchBg.MouseButton1Click:Connect(function()
+		state = not state
+		local targetPos = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+		local targetColor = state and C3(168, 85, 247) or C3(40, 40, 50)
+		
+		Tween:Create(switchDot, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Position = targetPos}):Play()
+		Tween:Create(switchBg, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {BackgroundColor3 = targetColor}):Play()
+		callback(state)
+	end)
+end
+
+local function CreateSlider(parent, labelText, minVal, maxVal, defaultVal, callback)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 45)
+	container.BackgroundTransparency = 1
+	container.Parent = parent
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 18)
+	label.BackgroundTransparency = 1
+	if maxVal > 5 then
+		label.Text = labelText .. ": " .. math.round(defaultVal)
+	else
+		label.Text = labelText .. ": " .. string.format("%.2f", defaultVal)
+	end
+	label.TextColor3 = C3(200, 200, 205)
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 12
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+
+	local sliderTrack = Instance.new("Frame")
+	sliderTrack.Size = UDim2.new(1, 0, 0, 6)
+	sliderTrack.Position = UDim2.new(0, 0, 0, 24)
+	sliderTrack.BackgroundColor3 = C3(45, 45, 55)
+	sliderTrack.BorderSizePixel = 0
+	sliderTrack.Active = true
+	sliderTrack.Parent = container
+
+	local trackCorner = Instance.new("UICorner")
+	trackCorner.CornerRadius = UDim.new(0, 3)
+	trackCorner.Parent = sliderTrack
+
+	local sliderFill = Instance.new("Frame")
+	sliderFill.Size = UDim2.new((defaultVal - minVal) / (maxVal - minVal), 0, 1, 0)
+	sliderFill.BackgroundColor3 = C3(168, 85, 247)
+	sliderFill.BorderSizePixel = 0
+	sliderFill.Parent = sliderTrack
+
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(0, 3)
+	fillCorner.Parent = sliderFill
+
+	-- Interactive Button Overlay
+	local sliderBtn = Instance.new("TextButton")
+	sliderBtn.Size = UDim2.new(1, 0, 1, 0)
+	sliderBtn.BackgroundTransparency = 1
+	sliderBtn.Text = ""
+	sliderBtn.Parent = sliderTrack
+
+	local dragging = false
+	local currentValue = defaultVal
+
+	local function updateSlider()
+		local relativeX = Mouse.X - sliderTrack.AbsolutePosition.X
+		local pct = math.clamp(relativeX / sliderTrack.AbsoluteSize.X, 0, 1)
+		
+		sliderFill.Size = UDim2.new(pct, 0, 1, 0)
+		local val = minVal + (pct * (maxVal - minVal))
+		currentValue = val
+		
+		if maxVal > 5 then
+			label.Text = labelText .. ": " .. math.round(val)
+		else
+			label.Text = labelText .. ": " .. string.format("%.2f", val)
+		end
+		callback(val)
+	end
+
+	sliderBtn.MouseButton1Down:Connect(function()
+		dragging = true
+		updateSlider()
+		
+		local moveConn, releaseConn
+		moveConn = Mouse.Move:Connect(function()
+			if dragging then
+				updateSlider()
+			else
+				moveConn:Disconnect()
+			end
+		end)
+		
+		releaseConn = UIS.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = false
+				if moveConn then moveConn:Disconnect() end
+				if releaseConn then releaseConn:Disconnect() end
+			end
+		end)
+	end)
+
+	local sliderObj = {}
+	function sliderObj.SetValue(val)
+		currentValue = val
+		local pct = math.clamp((val - minVal) / (maxVal - minVal), 0, 1)
+		sliderFill.Size = UDim2.new(pct, 0, 1, 0)
+		if maxVal > 5 then
+			label.Text = labelText .. ": " .. math.round(val)
+		else
+			label.Text = labelText .. ": " .. string.format("%.2f", val)
+		end
+	end
+	
+	return sliderObj
+end
+
+-- ===== TAB CONTENT POPULATION =====
+
+-- TAB 1: VISUALS
+local chamsTab = Tabs["Chams"]
+
+CreateToggle(chamsTab, "Enable Visuals", Cfg.Enabled, function(state)
+	Cfg.Enabled = state
+	_G.RefreshChams()
+end)
+
+CreateToggle(chamsTab, "Show Names", Cfg.ShowNames, function(state)
+	Cfg.ShowNames = state
+	for _, data in pairs(Chams) do
+		if data.NameGui then data.NameGui.Enabled = state end
+	end
+end)
+
+CreateToggle(chamsTab, "Show Health Bars", Cfg.ShowHealth, function(state)
+	Cfg.ShowHealth = state
+	for _, data in pairs(Chams) do
+		if data.HealthGui then data.HealthGui.Enabled = state end
+	end
+end)
+
+CreateSlider(chamsTab, "Fill Transparency", 0, 1, Cfg.FillTr, function(val)
+	Cfg.FillTr = val
+	for _, data in pairs(Chams) do
+		if data.Highlight then data.Highlight.FillTransparency = val end
+	end
+end)
+
+CreateSlider(chamsTab, "Outline Transparency", 0, 1, Cfg.OutTr, function(val)
+	Cfg.OutTr = val
+	for _, data in pairs(Chams) do
+		if data.Highlight then data.Highlight.OutlineTransparency = val end
+	end
+end)
+
+-- TAB 2: COLORS (RGB Color Selection System)
+local colorsTab = Tabs["Colors"]
+
+local categorySelector = Instance.new("Frame")
+categorySelector.Size = UDim2.new(1, 0, 0, 32)
+categorySelector.BackgroundTransparency = 1
+categorySelector.Parent = colorsTab
+
+local categories = {"ChamColor", "OutlineColor", "NameColor"}
+local categoryNames = {"Cham Fill", "Outline", "Names"}
+local categoryButtons = {}
+local activeCategory = "ChamColor"
+
+-- Preview Box
+local previewContainer = Instance.new("Frame")
+previewContainer.Size = UDim2.new(1, 0, 0, 36)
+previewContainer.BackgroundTransparency = 1
+previewContainer.Parent = colorsTab
+
+local previewLabel = Instance.new("TextLabel")
+previewLabel.Size = UDim2.new(0.5, 0, 1, 0)
+previewLabel.BackgroundTransparency = 1
+previewLabel.Text = "Color Preview:"
+previewLabel.TextColor3 = C3(200, 200, 205)
+previewLabel.Font = Enum.Font.GothamBold
+previewLabel.TextSize = 13
+previewLabel.TextXAlignment = Enum.TextXAlignment.Left
+previewLabel.Parent = previewContainer
+
+local previewSwatch = Instance.new("Frame")
+previewSwatch.Size = UDim2.new(0, 80, 0, 24)
+previewSwatch.Position = UDim2.new(1, -80, 0.5, -12)
+previewSwatch.BackgroundColor3 = Cfg.ChamColor
+previewSwatch.Parent = previewContainer
+
+local swatchCorner = Instance.new("UICorner")
+swatchCorner.CornerRadius = UDim.new(0, 6)
+swatchCorner.Parent = previewSwatch
+
+local swatchStroke = Instance.new("UIStroke")
+swatchStroke.Thickness = 1.5
+swatchStroke.Color = C3(60, 60, 70)
+swatchStroke.Parent = previewSwatch
+
+local rSlider, gSlider, bSlider
+
+local function updateColorsFromSliders()
+	local r = (rSlider.Value or 0) / 255
+	local g = (gSlider.Value or 0) / 255
+	local b = (bSlider.Value or 0) / 255
+	local col = Color3.new(r, g, b)
+	
+	Cfg[activeCategory] = col
+	previewSwatch.BackgroundColor3 = col
+	
+	if activeCategory == "ChamColor" then
+		for _, data in pairs(Chams) do
+			if data.Highlight then data.Highlight.FillColor = col end
+		end
+	elseif activeCategory == "OutlineColor" then
+		for _, data in pairs(Chams) do
+			if data.Highlight then data.Highlight.OutlineColor = col end
+		end
+	elseif activeCategory == "NameColor" then
+		for _, data in pairs(Chams) do
+			if data.NameLabel then data.NameLabel.TextColor3 = col end
+		end
+	end
+end
+
+rSlider = CreateSlider(colorsTab, "Red (R)", 0, 255, math.round(Cfg[activeCategory].R * 255), function(val)
+	rSlider.Value = val
+	updateColorsFromSliders()
+end)
+rSlider.Value = math.round(Cfg[activeCategory].R * 255)
+
+gSlider = CreateSlider(colorsTab, "Green (G)", 0, 255, math.round(Cfg[activeCategory].G * 255), function(val)
+	gSlider.Value = val
+	updateColorsFromSliders()
+end)
+gSlider.Value = math.round(Cfg[activeCategory].G * 255)
+
+bSlider = CreateSlider(colorsTab, "Blue (B)", 0, 255, math.round(Cfg[activeCategory].B * 255), function(val)
+	bSlider.Value = val
+	updateColorsFromSliders()
+end)
+bSlider.Value = math.round(Cfg[activeCategory].B * 255)
+
+local function selectCategory(catName)
+	activeCategory = catName
+	
+	for name, btn in pairs(categoryButtons) do
+		local active = (name == catName)
+		local targetColor = active and C3(168, 85, 247) or C3(200, 200, 205)
+		local targetBg = active and C3(30, 30, 40) or C3(24, 24, 32)
+		Tween:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {TextColor3 = targetColor, BackgroundColor3 = targetBg}):Play()
+	end
+	
+	local col = Cfg[catName]
+	local r = math.round(col.R * 255)
+	local g = math.round(col.G * 255)
+	local b = math.round(col.B * 255)
+	
+	rSlider.SetValue(r)
+	gSlider.SetValue(g)
+	bSlider.SetValue(b)
+	
+	rSlider.Value = r
+	gSlider.Value = g
+	bSlider.Value = b
+	
+	previewSwatch.BackgroundColor3 = col
+end
+
+for i, catName in ipairs(categories) do
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 110, 1, 0)
+	btn.Position = UDim2.new(0, (i - 1) * 115, 0, 0)
+	btn.BackgroundColor3 = C3(24, 24, 32)
+	btn.BorderSizePixel = 0
+	btn.Text = categoryNames[i]
+	btn.TextColor3 = C3(200, 200, 205)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 11
+	btn.Parent = categorySelector
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 6)
+	btnCorner.Parent = btn
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1
+	stroke.Color = C3(45, 45, 55)
+	stroke.Parent = btn
+
+	categoryButtons[catName] = btn
+	
+	btn.MouseButton1Click:Connect(function()
+		selectCategory(catName)
+	end)
+end
+
+selectCategory("ChamColor")
+
+-- TAB 3: SETTINGS
+local settingsTab = Tabs["Settings"]
+
+local infoCard = Instance.new("Frame")
+infoCard.Size = UDim2.new(1, 0, 0, 110)
+infoCard.BackgroundColor3 = C3(24, 24, 32)
+infoCard.BorderSizePixel = 0
+infoCard.Parent = settingsTab
+
+local infoCorner = Instance.new("UICorner")
+infoCorner.CornerRadius = UDim.new(0, 8)
+infoCorner.Parent = infoCard
+
+local infoStroke = Instance.new("UIStroke")
+infoStroke.Thickness = 1
+infoStroke.Color = C3(40, 40, 50)
+infoStroke.Parent = infoCard
+
+local infoTitle = Instance.new("TextLabel")
+infoTitle.Size = UDim2.new(1, -20, 0, 24)
+infoTitle.Position = UDim2.new(0, 10, 0, 10)
+infoTitle.BackgroundTransparency = 1
+infoTitle.Text = "Lsantas Visuals"
+infoTitle.TextColor3 = C3(168, 85, 247)
+infoTitle.Font = Enum.Font.GothamBold
+infoTitle.TextSize = 14
+infoTitle.TextXAlignment = Enum.TextXAlignment.Left
+infoTitle.Parent = infoCard
+
+local infoDetails = Instance.new("TextLabel")
+infoDetails.Size = UDim2.new(1, -20, 0, 60)
+infoDetails.Position = UDim2.new(0, 10, 0, 36)
+infoDetails.BackgroundTransparency = 1
+infoDetails.Text = "Created with love by Lsantas\n\nHotkey: [RightShift] - Toggle Menu Visibility\nEngine: Highlight Engine & Billboard GUI"
+infoDetails.TextColor3 = C3(160, 160, 170)
+infoDetails.Font = Enum.Font.GothamMedium
+infoDetails.TextSize = 11
+infoDetails.TextXAlignment = Enum.TextXAlignment.Left
+infoDetails.TextYAlignment = Enum.TextYAlignment.Top
+infoDetails.Parent = infoCard
+
+local unloadBtn = Instance.new("TextButton")
+unloadBtn.Size = UDim2.new(1, 0, 0, 38)
+unloadBtn.BackgroundColor3 = C3(180, 50, 50)
+unloadBtn.Text = "UNLOAD VISUALS"
+unloadBtn.TextColor3 = C3(255, 255, 255)
+unloadBtn.Font = Enum.Font.GothamBold
+unloadBtn.TextSize = 13
+unloadBtn.BorderSizePixel = 0
+unloadBtn.Parent = settingsTab
+
+local unloadCorner = Instance.new("UICorner")
+unloadCorner.CornerRadius = UDim.new(0, 8)
+unloadCorner.Parent = unloadBtn
+
+unloadBtn.MouseEnter:Connect(function()
+	Tween:Create(unloadBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(200, 60, 60)}):Play()
+end)
+unloadBtn.MouseLeave:Connect(function()
+	Tween:Create(unloadBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(180, 50, 50)}):Play()
+end)
+unloadBtn.MouseButton1Click:Connect(function()
+	_G.UnloadChams()
+end)
+
+-- Init Default Tab
+SwitchTab("Chams")
+
+-- ===== CHAMS & ESP LOGIC =====
+
+local function ClearPlayer(Plr)
+	local data = Chams[Plr]
+	if data then
+		if data.Highlight then data.Highlight:Destroy() end
+		if data.NameGui then data.NameGui:Destroy() end
+		if data.HealthGui then data.HealthGui:Destroy() end
+		if data.HealthConn then data.HealthConn:Disconnect() end
+		Chams[Plr] = nil
+	end
+end
+
+local function ClearAll()
+	for plr in pairs(Chams) do
+		ClearPlayer(plr)
+	end
+end
+
+local function Paint(Chr, Plr)
+	if not Chr or not Cfg.Enabled then return end
+	
+	-- Clear old chams first if they exist
+	ClearPlayer(Plr)
+
+	local data = {}
+
+	-- Highlight (Chams)
+	local H = Instance.new("Highlight")
+	H.Name = Tag
+	H.FillColor = Cfg.ChamColor
+	H.OutlineColor = Cfg.OutlineColor
+	H.FillTransparency = Cfg.FillTr
+	H.OutlineTransparency = Cfg.OutTr
+	H.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	H.Adornee = Chr
+	H.Parent = Container
+	data.Highlight = H
+
+	-- Wait for head or default part to attach text labels
+	local adornee = Chr:FindFirstChild("Head") or Chr:FindFirstChild("HumanoidRootPart") or Chr.PrimaryPart or Chr
+
+	-- Billboard Name
+	local bg = Instance.new("BillboardGui")
+	bg.Name = Tag.."Name"
+	bg.Size = UDim2.new(0, 100, 0, 24)
+	bg.StudsOffset = Vector3.new(0, 3.8, 0)
+	bg.AlwaysOnTop = true
+	bg.ResetOnSpawn = false
+	bg.Enabled = Cfg.ShowNames
+	bg.Adornee = adornee
+	bg.Parent = Container
+	data.NameGui = bg
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(1, 0, 1, 0)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = Plr.DisplayName
+	lbl.TextColor3 = Cfg.NameColor
+	lbl.TextStrokeTransparency = 1
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextSize = 14
+	lbl.Parent = bg
+	data.NameLabel = lbl
+
+	local lblStroke = Instance.new("UIStroke")
+	lblStroke.Thickness = 1
+	lblStroke.Color = C3(0, 0, 0)
+	lblStroke.Transparency = 0.4
+	lblStroke.Parent = lbl
+	data.NameStroke = lblStroke
+
+	-- Billboard Health Bar
+	local hum = Chr:FindFirstChildOfClass("Humanoid")
+	if hum then
+		local hpBg = Instance.new("BillboardGui")
+		hpBg.Name = Tag.."HP"
+		hpBg.Size = UDim2.new(0, 80, 0, 10)
+		hpBg.StudsOffset = Vector3.new(0, -3.5, 0)
+		hpBg.AlwaysOnTop = true
+		hpBg.ResetOnSpawn = false
+		hpBg.Enabled = Cfg.ShowHealth
+		hpBg.Adornee = adornee
+		hpBg.Parent = Container
+		data.HealthGui = hpBg
+
+		local hpFrame = Instance.new("Frame")
+		hpFrame.Size = UDim2.new(1, 0, 1, 0)
+		hpFrame.BackgroundColor3 = C3(15,15,15)
+		hpFrame.BackgroundTransparency = 0.25
+		hpFrame.BorderSizePixel = 0
+		hpFrame.Parent = hpBg
+
+		local hpCorner = Instance.new("UICorner")
+		hpCorner.CornerRadius = UDim.new(0, 2)
+		hpCorner.Parent = hpFrame
+
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 1
+		stroke.Color = C3(40,40,40)
+		stroke.Parent = hpFrame
+		data.HealthStroke = stroke
+
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.BackgroundColor3 = C3(80,200,80)
+		fill.BorderSizePixel = 0
+		fill.Parent = hpFrame
+
+		local fillCorner = Instance.new("UICorner")
+		fillCorner.CornerRadius = UDim.new(0, 2)
+		fillCorner.Parent = fill
+
+		local hpLbl = Instance.new("TextLabel")
+		hpLbl.Size = UDim2.new(1, 0, 1, 0)
+		hpLbl.BackgroundTransparency = 1
+		hpLbl.Text = math.floor(hum.Health).."/"..math.floor(hum.MaxHealth)
+		hpLbl.TextColor3 = C3(255, 255, 255)
+		hpLbl.TextStrokeTransparency = 0.5
+		hpLbl.Font = Enum.Font.Gotham
+		hpLbl.TextSize = 9
+		hpLbl.Parent = hpFrame
+
+		local function UpdateHP()
+			local hp = hum.Health
+			local maxHp = hum.MaxHealth
+			local pct = math.clamp(hp / maxHp, 0, 1)
+			fill.Size = UDim2.new(pct, 0, 1, 0)
+			fill.BackgroundColor3 = C3(
+				math.floor(255 * (1 - pct)),
+				math.floor(255 * pct),
+				0
+			)
+			hpLbl.Text = math.floor(hp).."/"..math.floor(maxHp)
+		end
+		UpdateHP()
+		local conn = hum.HealthChanged:Connect(UpdateHP)
+		data.HealthConn = conn
+	end
+
+	Chams[Plr] = data
+end
+
+_G.RefreshChams = function()
+	ClearAll()
+	if not Cfg.Enabled then return end
+	for _, v in next, P:GetPlayers() do
+		if v ~= LP and v.Character then Paint(v.Character, v) end
+	end
+end
+
+local function Hook(Plr)
+	if Plr == LP then return end
+	if Cons[Plr] then
+		for _, c in pairs(Cons[Plr]) do c:Disconnect() end
+	end
+	
+	Cons[Plr] = {}
+	
+	table.insert(Cons[Plr], Plr.CharacterAdded:Connect(function(c)
+		c:WaitForChild("Humanoid", 5)
+		task.wait(0.15)
+		if Cfg.Enabled then Paint(c, Plr) end
+	end))
+	
+	table.insert(Cons[Plr], Plr.CharacterRemoving:Connect(function()
+		ClearPlayer(Plr)
+	end))
+	
+	if Plr.Character and Cfg.Enabled then Paint(Plr.Character, Plr) end
+end
+
+-- Hook existing players
+for _, v in next, P:GetPlayers() do Hook(v) end
+
+-- Hook incoming & outgoing players
+Cons.Add = P.PlayerAdded:Connect(Hook)
+Cons.Remove = P.PlayerRemoving:Connect(function(Plr)
+	ClearPlayer(Plr)
+	if Cons[Plr] then
+		for _, c in pairs(Cons[Plr]) do c:Disconnect() end
+		Cons[Plr] = nil
+	end
+end)
+
+-- ===== PERIODIC AUTO-HEAL & CLEANUP LOOP (Bypasses anti-cheats & round clears) =====
+task.spawn(function()
+	while task.wait(1) do
+		if not isRunning then break end
+		
+		-- Recreate container if camera cleared it
+		if not Container or not Container.Parent then
+			Container = workspace.CurrentCamera:FindFirstChild("LsantasVisuals")
+			if not Container or not Container.Parent then
+				Container = Instance.new("Folder")
+				Container.Name = "LsantasVisuals"
+				Container.Parent = workspace.CurrentCamera
+			end
+		end
+
+		if Cfg.Enabled then
+			for _, v in ipairs(P:GetPlayers()) do
+				if v ~= LP then
+					pcall(function()
+						local char = v.Character
+						if char and char.Parent then
+							local hum = char:FindFirstChildOfClass("Humanoid")
+							if hum and hum.Health > 0 then
+								local data = Chams[v]
+								local hasHighlight = data and data.Highlight and data.Highlight.Parent == Container
+								if not data or not hasHighlight then
+									Paint(char, v)
+								end
+							else
+								ClearPlayer(v)
+							end
+						else
+							ClearPlayer(v)
+						end
+					end)
+				end
+			end
+		else
+			ClearAll()
+		end
+	end
+end)
+
+-- ===== KEYBIND & TOGGLE =====
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		menuOpen = not menuOpen
+		ScreenGui.Enabled = menuOpen
+	end
+end)
+
+-- ===== UNLOAD FUNCTION =====
+_G.UnloadChams = function()
+	isRunning = false
+	if Cons.Add then Cons.Add:Disconnect() end
+	if Cons.Remove then Cons.Remove:Disconnect() end
+	
+	for _, playerCons in pairs(Cons) do
+		if type(playerCons) == "table" then
+			for _, conn in pairs(playerCons) do
+				if conn.Disconnect then conn:Disconnect() end
+			end
+		elseif playerCons.Disconnect then
+			playerCons:Disconnect()
+		end
+	end
+	
+	ClearAll()
+	if Container then Container:Destroy() end
+	_G.UnloadChams = nil
+	_G.RefreshChams = nil
+	ScreenGui:Destroy()
+end
