@@ -18,15 +18,71 @@ local Cons, Chams = {}, {}
 local isRunning = true
 local hasMouseSim = (typeof(mousemoverel) == "function")
 
+-- Dynamic name resolver for hotkeys and GUI indicators
+local function GetInputName(input)
+	if not input then return "None" end
+	if typeof(input) == "EnumItem" then
+		if input.Name == "MouseButton1" or input == Enum.UserInputType.MouseButton1 then
+			return "LMB"
+		elseif input.Name == "MouseButton2" or input == Enum.UserInputType.MouseButton2 then
+			return "RMB"
+		elseif input.Name == "MouseButton3" or input == Enum.UserInputType.MouseButton3 then
+			return "MMB"
+		else
+			return input.Name
+		end
+	elseif typeof(input) == "Instance" and input:IsA("InputObject") then
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			return input.KeyCode.Name
+		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+			return "LMB"
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			return "RMB"
+		elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
+			return "MMB"
+		else
+			return input.UserInputType.Name
+		end
+	end
+	return tostring(input)
+end
+
+-- ===== CONFIGURATION =====
+local Cfg = {
+	Enabled = true,
+	ShowNames = true,
+	ShowHealth = true,
+	FillTr = 0.5,
+	OutTr = 0.1,
+	ChamColor = C3(168, 85, 247),
+	OutlineColor = C3(255, 255, 255),
+	NameColor = C3(255, 255, 255),
+	VisualsRGB = false,
+	AimbotEnabled = false,
+	AimbotKey = Enum.KeyCode.LeftAlt,
+	AimbotFov = 150,
+	AimbotSmoothness = 1,
+	AimbotWallCheck = true,
+	AimbotShowFov = true,
+	AimbotTargetPart = "Head",
+	AimbotFovColor = C3(255, 0, 0),
+	AimbotPrediction = true,
+	AimbotPredictionFactor = 1.0,
+	AimbotMode = "Hold", -- "Hold" or "Toggle"
+	UseMouseSimulation = hasMouseSim,
+	MenuKey = Enum.KeyCode.RightShift,
+}
+local menuOpen = false
+
 -- ===== CLEANUP EXISTING INSTANCES =====
 if _G.UnloadChams then _G.UnloadChams() end
 if LP.PlayerGui:FindFirstChild("ChamsUI") then LP.PlayerGui:FindFirstChild("ChamsUI"):Destroy() end
 
 -- ===== CAMERA CONTAINER FOR HIGHLIGHTS & ESP =====
-local Container = workspace.CurrentCamera:FindFirstChild("Lsantas Hack Client")
+local Container = workspace.CurrentCamera:FindFirstChild("LsantasVisuals")
 if not Container then
 	Container = Instance.new("Folder")
-	Container.Name = "Lsantas Hack Client"
+	Container.Name = "LsantasVisuals"
 	Container.Parent = workspace.CurrentCamera
 end
 
@@ -159,7 +215,7 @@ MainStroke.Parent = MainText
 local SubText = Instance.new("TextLabel")
 SubText.Size = UDim2.new(1, 0, 0, 35)
 SubText.BackgroundTransparency = 1
-SubText.Text = "Lsantas Visuals"
+SubText.Text = "Lsantas Hack Client"
 SubText.TextColor3 = C3(192, 132, 252)
 SubText.TextTransparency = 1
 SubText.Font = Enum.Font.GothamMedium
@@ -201,32 +257,7 @@ fo:Play()
 fo.Completed:Wait()
 SplashGui:Destroy()
 
-ShowNotification("Lsantas Visuals", "Hile başarıyla açıldı!\n[RightShift] Menü, [LeftAlt] Aimbot.", 5)
-
--- ===== CONFIGURATION =====
-local Cfg = {
-	Enabled = true,
-	ShowNames = true,
-	ShowHealth = true,
-	FillTr = 0.5,
-	OutTr = 0.1,
-	ChamColor = C3(168, 85, 247),
-	OutlineColor = C3(255, 255, 255),
-	NameColor = C3(255, 255, 255),
-	AimbotEnabled = false,
-	AimbotKey = Enum.KeyCode.LeftAlt,
-	AimbotFov = 150,
-	AimbotSmoothness = 1,
-	AimbotWallCheck = true,
-	AimbotShowFov = true,
-	AimbotTargetPart = "Head",
-	AimbotFovColor = C3(255, 0, 0),
-	AimbotPrediction = true,
-	AimbotPredictionFactor = 1.0,
-	AimbotMode = "Hold", -- "Hold" or "Toggle"
-	UseMouseSimulation = hasMouseSim,
-}
-local menuOpen = false
+ShowNotification("Lsantas Hack Client", "Hile başarıyla açıldı!\n[" .. GetInputName(Cfg.MenuKey) .. "] Menü, [" .. GetInputName(Cfg.AimbotKey) .. "] Aimbot.", 5)
 
 -- ===== AIMBOT STATE =====
 local aimbotState = {
@@ -235,35 +266,6 @@ local aimbotState = {
 	fovCircle = nil,
 	connections = {},
 }
-
--- Resolve human-readable names for UI bindings dynamically
-local function GetInputName(input)
-	if not input then return "None" end
-	if typeof(input) == "EnumItem" then
-		if input.Name == "MouseButton1" or input == Enum.UserInputType.MouseButton1 then
-			return "LMB"
-		elseif input.Name == "MouseButton2" or input == Enum.UserInputType.MouseButton2 then
-			return "RMB"
-		elseif input.Name == "MouseButton3" or input == Enum.UserInputType.MouseButton3 then
-			return "MMB"
-		else
-			return input.Name
-		end
-	elseif typeof(input) == "Instance" and input:IsA("InputObject") then
-		if input.UserInputType == Enum.UserInputType.Keyboard then
-			return input.KeyCode.Name
-		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-			return "LMB"
-		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-			return "RMB"
-		elseif input.UserInputType == Enum.UserInputType.MouseButton3 then
-			return "MMB"
-		else
-			return input.UserInputType.Name
-		end
-	end
-	return tostring(input)
-end
 
 local function CreateFovCircle()
 	pcall(function()
@@ -444,7 +446,6 @@ local function SetupAimbotLoop()
 				end
 
 				if aimbotState.active then
-					-- Target Lock-On Logic (Prevents chaotic target switching & reduces recoil spread)
 					local target = aimbotState.currentTarget
 					local isValid, targetPart = false, nil
 					if target then
@@ -660,6 +661,21 @@ UIStroke.Color = C3(168, 85, 247)
 UIStroke.Transparency = 0.5
 UIStroke.Parent = Frame
 
+-- Transparent Modal button to unlock cursor and keep it visible
+local ModalTrigger = Instance.new("TextButton")
+ModalTrigger.Size = UDim2.new(0, 0, 0, 0)
+ModalTrigger.BackgroundTransparency = 1
+ModalTrigger.Text = ""
+ModalTrigger.Modal = true
+ModalTrigger.Visible = false
+ModalTrigger.Parent = Frame
+
+local function ToggleMenu(state)
+	menuOpen = state
+	ScreenGui.Enabled = state
+	ModalTrigger.Visible = state
+end
+
 -- Header / Title Bar
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 42)
@@ -682,7 +698,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0.7, 0, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "Lsantas Visuals"
+Title.Text = "Lsantas Hack Client"
 Title.TextColor3 = C3(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -706,8 +722,7 @@ CloseBtn.MouseLeave:Connect(function()
 	TweenService:Create(CloseBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {TextColor3 = C3(150, 150, 160)}):Play()
 end)
 CloseBtn.MouseButton1Click:Connect(function()
-	menuOpen = false
-	ScreenGui.Enabled = false
+	ToggleMenu(false)
 end)
 
 -- Custom Drag Script
@@ -849,6 +864,17 @@ CreateToggle(chamsTab, "Enable Visuals", Cfg.Enabled, function(state)
 	_G.RefreshChams()
 end)
 
+CreateToggle(chamsTab, "Rainbow RGB Mode", Cfg.VisualsRGB, function(state)
+	Cfg.VisualsRGB = state
+	if not state then
+		-- Reset immediately back to standard static colors
+		for _, data in pairs(Chams) do
+			if data.Highlight then data.Highlight.FillColor = Cfg.ChamColor end
+			if data.NameLabel then data.NameLabel.TextColor3 = Cfg.NameColor end
+		end
+	end
+end)
+
 CreateToggle(chamsTab, "Show Names", Cfg.ShowNames, function(state)
 	Cfg.ShowNames = state
 	for _, data in pairs(Chams) do
@@ -930,17 +956,26 @@ local function updateColorsFromSliders()
 	Cfg[activeCategory] = col
 	previewSwatch.BackgroundColor3 = col
 
-	if activeCategory == "ChamColor" then
-		for _, data in pairs(Chams) do
-			if data.Highlight then data.Highlight.FillColor = col end
+	if not Cfg.VisualsRGB then
+		if activeCategory == "ChamColor" then
+			for _, data in pairs(Chams) do
+				if data.Highlight then data.Highlight.FillColor = col end
+			end
+		elseif activeCategory == "OutlineColor" then
+			for _, data in pairs(Chams) do
+				if data.Highlight then data.Highlight.OutlineColor = col end
+			end
+		elseif activeCategory == "NameColor" then
+			for _, data in pairs(Chams) do
+				if data.NameLabel then data.NameLabel.TextColor3 = col end
+			end
 		end
-	elseif activeCategory == "OutlineColor" then
-		for _, data in pairs(Chams) do
-			if data.Highlight then data.Highlight.OutlineColor = col end
-		end
-	elseif activeCategory == "NameColor" then
-		for _, data in pairs(Chams) do
-			if data.NameLabel then data.NameLabel.TextColor3 = col end
+	else
+		-- Even if RGB is on, update the Outline Color immediately as it doesn't cycle
+		if activeCategory == "OutlineColor" then
+			for _, data in pairs(Chams) do
+				if data.Highlight then data.Highlight.OutlineColor = col end
+			end
 		end
 	end
 end
@@ -1068,46 +1103,6 @@ CreateSlider(aimbotTab, "Smoothness", 1, 20, Cfg.AimbotSmoothness, function(val)
 	Cfg.AimbotSmoothness = val
 end)
 
--- Aimbot Mode Selector (Hold vs Toggle)
-local aimbotModes = {"Hold", "Toggle"}
-local currentModeIndex = 1
-
-local amContainer = Instance.new("Frame")
-amContainer.Size = UDim2.new(1, 0, 0, 36)
-amContainer.BackgroundTransparency = 1
-amContainer.Parent = aimbotTab
-
-local amLabel = Instance.new("TextLabel")
-amLabel.Size = UDim2.new(0.7, 0, 1, 0)
-amLabel.BackgroundTransparency = 1
-amLabel.Text = "Aimbot Mode"
-amLabel.TextColor3 = C3(220, 220, 225)
-amLabel.Font = Enum.Font.GothamMedium
-amLabel.TextSize = 13
-amLabel.TextXAlignment = Enum.TextXAlignment.Left
-amLabel.Parent = amContainer
-
-local amBtn = Instance.new("TextButton")
-amBtn.Size = UDim2.new(0, 120, 0, 26)
-amBtn.Position = UDim2.new(1, -120, 0.5, -13)
-amBtn.BackgroundColor3 = C3(35, 35, 45)
-amBtn.Text = Cfg.AimbotMode
-amBtn.TextColor3 = C3(168, 85, 247)
-amBtn.Font = Enum.Font.GothamBold
-amBtn.TextSize = 12
-amBtn.BorderSizePixel = 0
-amBtn.Parent = amContainer
-
-Instance.new("UICorner", amBtn).CornerRadius = UDim.new(0, 6)
-
-amBtn.MouseButton1Click:Connect(function()
-	currentModeIndex = currentModeIndex % #aimbotModes + 1
-	Cfg.AimbotMode = aimbotModes[currentModeIndex]
-	amBtn.Text = Cfg.AimbotMode
-	aimbotState.active = false
-	aimbotState.currentTarget = nil
-end)
-
 -- Target Part Selector
 local targetParts = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"}
 local currentTargetIndex = 1
@@ -1144,69 +1139,6 @@ tpBtn.MouseButton1Click:Connect(function()
 	currentTargetIndex = currentTargetIndex % #targetParts + 1
 	Cfg.AimbotTargetPart = targetParts[currentTargetIndex]
 	tpBtn.Text = Cfg.AimbotTargetPart
-end)
-
--- Dynamic Robust Aim Keybind Selector (Prevents locks/freezes)
-local kbContainer = Instance.new("Frame")
-kbContainer.Size = UDim2.new(1, 0, 0, 36)
-kbContainer.BackgroundTransparency = 1
-kbContainer.Parent = aimbotTab
-
-local kbLabel = Instance.new("TextLabel")
-kbLabel.Size = UDim2.new(0.7, 0, 1, 0)
-kbLabel.BackgroundTransparency = 1
-kbLabel.Text = "Aim Key"
-kbLabel.TextColor3 = C3(220, 220, 225)
-kbLabel.Font = Enum.Font.GothamMedium
-kbLabel.TextSize = 13
-kbLabel.TextXAlignment = Enum.TextXAlignment.Left
-kbLabel.Parent = kbContainer
-
-local kbBtn = Instance.new("TextButton")
-kbBtn.Size = UDim2.new(0, 120, 0, 26)
-kbBtn.Position = UDim2.new(1, -120, 0.5, -13)
-kbBtn.BackgroundColor3 = C3(35, 35, 45)
-kbBtn.Text = GetInputName(Cfg.AimbotKey)
-kbBtn.TextColor3 = C3(168, 85, 247)
-kbBtn.Font = Enum.Font.GothamBold
-kbBtn.TextSize = 11
-kbBtn.BorderSizePixel = 0
-kbBtn.Parent = kbContainer
-
-Instance.new("UICorner", kbBtn).CornerRadius = UDim.new(0, 6)
-
-local waitingForKey = false
-
-kbBtn.MouseButton1Click:Connect(function()
-	if waitingForKey then return end
-	waitingForKey = true
-	kbBtn.Text = "..."
-	kbBtn.TextColor3 = C3(255, 255, 100)
-
-	local conn
-	conn = UserInputService.InputBegan:Connect(function(input, gpe)
-		-- Listen to Keyboard or Mouse side buttons (Except LMB to allow UI operations)
-		local isKeyboard = (input.UserInputType == Enum.UserInputType.Keyboard)
-		local isMouse = (input.UserInputType == Enum.UserInputType.MouseButton2 or input.UserInputType == Enum.UserInputType.MouseButton3)
-		
-		if isKeyboard or isMouse then
-			-- Prevent binding toggle menu key
-			if input.KeyCode == Enum.KeyCode.RightShift then
-				waitingForKey = false
-				kbBtn.Text = GetInputName(Cfg.AimbotKey)
-				kbBtn.TextColor3 = C3(168, 85, 247)
-				conn:Disconnect()
-				return
-			end
-
-			Cfg.AimbotKey = isKeyboard and input.KeyCode or input.UserInputType
-			kbBtn.Text = GetInputName(input)
-			kbBtn.TextColor3 = C3(168, 85, 247)
-			waitingForKey = false
-			conn:Disconnect()
-			SetupAimbotInput()
-		end
-	end)
 end)
 
 -- FOV Color Picker Button
@@ -1248,7 +1180,7 @@ fcBtn.MouseButton1Click:Connect(function()
 	if aimbotState.fovCircle then aimbotState.fovCircle.Color = Cfg.AimbotFovColor end
 end)
 
--- ===== TAB 4: SETTINGS =====
+-- ===== TAB 4: SETTINGS (Centralized binds & adjustments) =====
 local settingsTab = Tabs["Settings"]
 
 local infoCard = Instance.new("Frame")
@@ -1279,7 +1211,7 @@ local infoDetails = Instance.new("TextLabel")
 infoDetails.Size = UDim2.new(1, -20, 0, 60)
 infoDetails.Position = UDim2.new(0, 10, 0, 36)
 infoDetails.BackgroundTransparency = 1
-infoDetails.Text = "Created by Lsantas\n\n[RightShift] Toggle Menu\n[AimKey] Aimbot Snap (Configurable)"
+infoDetails.Text = "Created by Lsantas\n\nConfigure trigger settings and client hotkeys below."
 infoDetails.TextColor3 = C3(160, 160, 170)
 infoDetails.Font = Enum.Font.GothamMedium
 infoDetails.TextSize = 11
@@ -1287,10 +1219,159 @@ infoDetails.TextXAlignment = Enum.TextXAlignment.Left
 infoDetails.TextYAlignment = Enum.TextYAlignment.Top
 infoDetails.Parent = infoCard
 
+-- 1. Menu Keybind Selector
+local menuKeyContainer = Instance.new("Frame")
+menuKeyContainer.Size = UDim2.new(1, 0, 0, 36)
+menuKeyContainer.BackgroundTransparency = 1
+menuKeyContainer.Parent = settingsTab
+
+local menuKeyLabel = Instance.new("TextLabel")
+menuKeyLabel.Size = UDim2.new(0.7, 0, 1, 0)
+menuKeyLabel.BackgroundTransparency = 1
+menuKeyLabel.Text = "Menu Keybind"
+menuKeyLabel.TextColor3 = C3(220, 220, 225)
+menuKeyLabel.Font = Enum.Font.GothamMedium
+menuKeyLabel.TextSize = 13
+menuKeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+menuKeyLabel.Parent = menuKeyContainer
+
+local menuKeyBtn = Instance.new("TextButton")
+menuKeyBtn.Size = UDim2.new(0, 120, 0, 26)
+menuKeyBtn.Position = UDim2.new(1, -120, 0.5, -13)
+menuKeyBtn.BackgroundColor3 = C3(35, 35, 45)
+menuKeyBtn.Text = GetInputName(Cfg.MenuKey)
+menuKeyBtn.TextColor3 = C3(168, 85, 247)
+menuKeyBtn.Font = Enum.Font.GothamBold
+menuKeyBtn.TextSize = 11
+menuKeyBtn.BorderSizePixel = 0
+menuKeyBtn.Parent = menuKeyContainer
+
+Instance.new("UICorner", menuKeyBtn).CornerRadius = UDim.new(0, 6)
+
+local waitingForMenuKey = false
+menuKeyBtn.MouseButton1Click:Connect(function()
+	if waitingForMenuKey then return end
+	waitingForMenuKey = true
+	menuKeyBtn.Text = "..."
+	menuKeyBtn.TextColor3 = C3(255, 255, 100)
+
+	local conn
+	conn = UserInputService.InputBegan:Connect(function(input, gpe)
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			Cfg.MenuKey = input.KeyCode
+			menuKeyBtn.Text = GetInputName(input)
+			menuKeyBtn.TextColor3 = C3(168, 85, 247)
+			waitingForMenuKey = false
+			conn:Disconnect()
+		end
+	end)
+end)
+
+-- 2. Aim Keybind Selector
+local kbContainer = Instance.new("Frame")
+kbContainer.Size = UDim2.new(1, 0, 0, 36)
+kbContainer.BackgroundTransparency = 1
+kbContainer.Parent = settingsTab
+
+local kbLabel = Instance.new("TextLabel")
+kbLabel.Size = UDim2.new(0.7, 0, 1, 0)
+kbLabel.BackgroundTransparency = 1
+kbLabel.Text = "Aimbot Aim Key"
+kbLabel.TextColor3 = C3(220, 220, 225)
+kbLabel.Font = Enum.Font.GothamMedium
+kbLabel.TextSize = 13
+kbLabel.TextXAlignment = Enum.TextXAlignment.Left
+kbLabel.Parent = kbContainer
+
+local kbBtn = Instance.new("TextButton")
+kbBtn.Size = UDim2.new(0, 120, 0, 26)
+kbBtn.Position = UDim2.new(1, -120, 0.5, -13)
+kbBtn.BackgroundColor3 = C3(35, 35, 45)
+kbBtn.Text = GetInputName(Cfg.AimbotKey)
+kbBtn.TextColor3 = C3(168, 85, 247)
+kbBtn.Font = Enum.Font.GothamBold
+kbBtn.TextSize = 11
+kbBtn.BorderSizePixel = 0
+kbBtn.Parent = kbContainer
+
+Instance.new("UICorner", kbBtn).CornerRadius = UDim.new(0, 6)
+
+local waitingForKey = false
+kbBtn.MouseButton1Click:Connect(function()
+	if waitingForKey then return end
+	waitingForKey = true
+	kbBtn.Text = "..."
+	kbBtn.TextColor3 = C3(255, 255, 100)
+
+	local conn
+	conn = UserInputService.InputBegan:Connect(function(input, gpe)
+		local isKeyboard = (input.UserInputType == Enum.UserInputType.Keyboard)
+		local isMouse = (input.UserInputType == Enum.UserInputType.MouseButton2 or input.UserInputType == Enum.UserInputType.MouseButton3)
+		
+		if isKeyboard or isMouse then
+			if input.KeyCode == Cfg.MenuKey then
+				waitingForKey = false
+				kbBtn.Text = GetInputName(Cfg.AimbotKey)
+				kbBtn.TextColor3 = C3(168, 85, 247)
+				conn:Disconnect()
+				return
+			end
+
+			Cfg.AimbotKey = isKeyboard and input.KeyCode or input.UserInputType
+			kbBtn.Text = GetInputName(input)
+			kbBtn.TextColor3 = C3(168, 85, 247)
+			waitingForKey = false
+			conn:Disconnect()
+			SetupAimbotInput()
+		end
+	end)
+end)
+
+-- 3. Aimbot Trigger Mode Selector
+local aimbotModes = {"Hold", "Toggle"}
+local currentModeIndex = 1
+
+local amContainer = Instance.new("Frame")
+amContainer.Size = UDim2.new(1, 0, 0, 36)
+amContainer.BackgroundTransparency = 1
+amContainer.Parent = settingsTab
+
+local amLabel = Instance.new("TextLabel")
+amLabel.Size = UDim2.new(0.7, 0, 1, 0)
+amLabel.BackgroundTransparency = 1
+amLabel.Text = "Aimbot Trigger Mode"
+amLabel.TextColor3 = C3(220, 220, 225)
+amLabel.Font = Enum.Font.GothamMedium
+amLabel.TextSize = 13
+amLabel.TextXAlignment = Enum.TextXAlignment.Left
+amLabel.Parent = amContainer
+
+local amBtn = Instance.new("TextButton")
+amBtn.Size = UDim2.new(0, 120, 0, 26)
+amBtn.Position = UDim2.new(1, -120, 0.5, -13)
+amBtn.BackgroundColor3 = C3(35, 35, 45)
+amBtn.Text = Cfg.AimbotMode
+amBtn.TextColor3 = C3(168, 85, 247)
+amBtn.Font = Enum.Font.GothamBold
+amBtn.TextSize = 12
+amBtn.BorderSizePixel = 0
+amBtn.Parent = amContainer
+
+Instance.new("UICorner", amBtn).CornerRadius = UDim.new(0, 6)
+
+amBtn.MouseButton1Click:Connect(function()
+	currentModeIndex = currentModeIndex % #aimbotModes + 1
+	Cfg.AimbotMode = aimbotModes[currentModeIndex]
+	amBtn.Text = Cfg.AimbotMode
+	aimbotState.active = false
+	aimbotState.currentTarget = nil
+end)
+
+-- 4. Unload Button
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.new(1, 0, 0, 38)
 unloadBtn.BackgroundColor3 = C3(180, 50, 50)
-unloadBtn.Text = "UNLOAD VISUALS"
+unloadBtn.Text = "UNLOAD CLIENT"
 unloadBtn.TextColor3 = C3(255, 255, 255)
 unloadBtn.Font = Enum.Font.GothamBold
 unloadBtn.TextSize = 13
@@ -1305,7 +1386,6 @@ end)
 unloadBtn.MouseLeave:Connect(function()
 	TweenService:Create(unloadBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(180, 50, 50)}):Play()
 end)
-
 unloadBtn.MouseButton1Click:Connect(function()
 	_G.UnloadChams()
 end)
@@ -1336,10 +1416,18 @@ local function Paint(Chr, Plr)
 
 	local data = {}
 
+	local paintColor = Cfg.ChamColor
+	local paintNameColor = Cfg.NameColor
+	if Cfg.VisualsRGB then
+		local hue = (tick() * 0.15) % 1
+		paintColor = HSV(hue, 0.8, 1)
+		paintNameColor = paintColor
+	end
+
 	-- Highlight Chams
 	local H = Instance.new("Highlight")
 	H.Name = Tag
-	H.FillColor = Cfg.ChamColor
+	H.FillColor = paintColor
 	H.OutlineColor = Cfg.OutlineColor
 	H.FillTransparency = Cfg.FillTr
 	H.OutlineTransparency = Cfg.OutTr
@@ -1366,7 +1454,7 @@ local function Paint(Chr, Plr)
 	lbl.Size = UDim2.new(1, 0, 1, 0)
 	lbl.BackgroundTransparency = 1
 	lbl.Text = Plr.DisplayName
-	lbl.TextColor3 = Cfg.NameColor
+	lbl.TextColor3 = paintNameColor
 	lbl.TextStrokeTransparency = 1
 	lbl.Font = Enum.Font.GothamBold
 	lbl.TextSize = 14
@@ -1487,10 +1575,10 @@ task.spawn(function()
 	while task.wait(1) do
 		if not isRunning then break end
 		if not Container or not Container.Parent then
-			Container = workspace.CurrentCamera:FindFirstChild("Lsantas Hack Client")
+			Container = workspace.CurrentCamera:FindFirstChild("LsantasVisuals")
 			if not Container or not Container.Parent then
 				Container = Instance.new("Folder")
-				Container.Name = "Lsantas Hack Client"
+				Container.Name = "LsantasVisuals"
 				Container.Parent = workspace.CurrentCamera
 			end
 		end
@@ -1522,12 +1610,26 @@ task.spawn(function()
 	end
 end)
 
+-- ===== RGB VISUALS ANIMATION THREAD =====
+task.spawn(function()
+	while task.wait() do
+		if not isRunning then break end
+		if Cfg.Enabled and Cfg.VisualsRGB then
+			local hue = (tick() * 0.15) % 1
+			local color = HSV(hue, 0.8, 1)
+			for _, data in pairs(Chams) do
+				if data.Highlight then data.Highlight.FillColor = color end
+				if data.NameLabel then data.NameLabel.TextColor3 = color end
+			end
+		end
+	end
+end)
+
 -- ===== KEYBIND TO TOGGLE MENU =====
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
-	if input.KeyCode == Enum.KeyCode.RightShift then
-		menuOpen = not menuOpen
-		ScreenGui.Enabled = menuOpen
+	if input.KeyCode == Cfg.MenuKey then
+		ToggleMenu(not menuOpen)
 	end
 end)
 
