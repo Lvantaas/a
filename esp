@@ -65,7 +65,7 @@ local Cfg = {
 	AimbotKey = Enum.KeyCode.LeftAlt,
 	AimbotFov = 150,
 	AimbotSmoothness = 1,
-	AimbotWallCheck = true,
+	AimbotWallCheck = false,
 	AimbotShowFov = true,
 	AimbotTargetPart = "Head",
 	AimbotFovColor = C3(255, 0, 0),
@@ -273,7 +273,7 @@ WatermarkGui.Parent = LP.PlayerGui
 
 local WatermarkFrame = Instance.new("Frame")
 WatermarkFrame.Size = UDim2.new(0, 240, 0, 28)
-WatermarkFrame.Position = UDim2.new(0, 15, 0, 15)
+WatermarkFrame.Position = UDim2.new(0, 15, 0, 50)
 WatermarkFrame.BackgroundColor3 = C3(18, 18, 24)
 WatermarkFrame.BorderSizePixel = 0
 WatermarkFrame.Parent = WatermarkGui
@@ -1295,11 +1295,7 @@ infoDetails.TextXAlignment = Enum.TextXAlignment.Left
 infoDetails.TextYAlignment = Enum.TextYAlignment.Top
 infoDetails.Parent = infoCard
 
--- Show Watermark Toggle
-CreateToggle(settingsTab, "Show FPS Watermark", Cfg.ShowWatermark, function(state)
-	Cfg.ShowWatermark = state
-	if WatermarkGui then WatermarkGui.Enabled = state end
-end)
+
 
 -- 1. Menu Keybind Selector
 local menuKeyContainer = Instance.new("Frame")
