@@ -18,6 +18,9 @@ local Cons, Chams = {}, {}
 local isRunning = true
 local hasMouseSim = (typeof(mousemoverel) == "function")
 
+-- Shared GUI variables for dynamic synchronization
+local WatermarkGui, WatermarkStroke, AccentBar, AccentCover, WatermarkLabel
+
 -- Dynamic name resolver for hotkeys and GUI indicators
 local function GetInputName(input)
 	if not input then return "None" end
@@ -71,12 +74,14 @@ local Cfg = {
 	AimbotMode = "Hold", -- "Hold" or "Toggle"
 	UseMouseSimulation = hasMouseSim,
 	MenuKey = Enum.KeyCode.RightShift,
+	ShowWatermark = true,
 }
 local menuOpen = false
 
 -- ===== CLEANUP EXISTING INSTANCES =====
 if _G.UnloadChams then _G.UnloadChams() end
 if LP.PlayerGui:FindFirstChild("ChamsUI") then LP.PlayerGui:FindFirstChild("ChamsUI"):Destroy() end
+if LP.PlayerGui:FindFirstChild("LsantasWatermark") then LP.PlayerGui:FindFirstChild("LsantasWatermark"):Destroy() end
 
 -- ===== CAMERA CONTAINER FOR HIGHLIGHTS & ESP =====
 local Container = workspace.CurrentCamera:FindFirstChild("LsantasVisuals")
@@ -111,22 +116,22 @@ local function ShowNotification(title, text, duration)
 	NotifStroke.Transparency = 0.4
 	NotifStroke.Parent = NotifFrame
 
-	local AccentBar = Instance.new("Frame")
-	AccentBar.Size = UDim2.new(0, 5, 1, 0)
-	AccentBar.BackgroundColor3 = C3(168, 85, 247)
-	AccentBar.BorderSizePixel = 0
-	AccentBar.Parent = NotifFrame
+	local AccentBarObj = Instance.new("Frame")
+	AccentBarObj.Size = UDim2.new(0, 5, 1, 0)
+	AccentBarObj.BackgroundColor3 = C3(168, 85, 247)
+	AccentBarObj.BorderSizePixel = 0
+	AccentBarObj.Parent = NotifFrame
 
 	local AccentCorner = Instance.new("UICorner")
 	AccentCorner.CornerRadius = UDim.new(0, 8)
-	AccentCorner.Parent = AccentBar
+	AccentCorner.Parent = AccentBarObj
 
 	local AccentCover = Instance.new("Frame")
 	AccentCover.Size = UDim2.new(0, 5, 1, 0)
 	AccentCover.Position = UDim2.new(1, -5, 0, 0)
 	AccentCover.BackgroundColor3 = C3(168, 85, 247)
 	AccentCover.BorderSizePixel = 0
-	AccentCover.Parent = AccentBar
+	AccentCover.Parent = AccentBarObj
 
 	local TitleLabel = Instance.new("TextLabel")
 	TitleLabel.Size = UDim2.new(1, -25, 0, 25)
@@ -258,6 +263,77 @@ fo.Completed:Wait()
 SplashGui:Destroy()
 
 ShowNotification("Lsantas Hack Client", "Hile başarıyla açıldı!\n[" .. GetInputName(Cfg.MenuKey) .. "] Menü, [" .. GetInputName(Cfg.AimbotKey) .. "] Aimbot.", 5)
+
+-- ===== WATERMARK GUI =====
+WatermarkGui = Instance.new("ScreenGui")
+WatermarkGui.Name = "LsantasWatermark"
+WatermarkGui.ResetOnSpawn = false
+WatermarkGui.Enabled = Cfg.ShowWatermark
+WatermarkGui.Parent = LP.PlayerGui
+
+local WatermarkFrame = Instance.new("Frame")
+WatermarkFrame.Size = UDim2.new(0, 240, 0, 28)
+WatermarkFrame.Position = UDim2.new(0, 15, 0, 15)
+WatermarkFrame.BackgroundColor3 = C3(18, 18, 24)
+WatermarkFrame.BorderSizePixel = 0
+WatermarkFrame.Parent = WatermarkGui
+
+local WatermarkCorner = Instance.new("UICorner")
+WatermarkCorner.CornerRadius = UDim.new(0, 6)
+WatermarkCorner.Parent = WatermarkFrame
+
+WatermarkStroke = Instance.new("UIStroke")
+WatermarkStroke.Thickness = 1.2
+WatermarkStroke.Color = C3(168, 85, 247)
+WatermarkStroke.Transparency = 0.5
+WatermarkStroke.Parent = WatermarkFrame
+
+AccentBar = Instance.new("Frame")
+AccentBar.Size = UDim2.new(0, 4, 1, 0)
+AccentBar.BackgroundColor3 = C3(168, 85, 247)
+AccentBar.BorderSizePixel = 0
+AccentBar.Parent = WatermarkFrame
+
+local AccentCorner = Instance.new("UICorner")
+AccentCorner.CornerRadius = UDim.new(0, 6)
+AccentCorner.Parent = AccentBar
+
+AccentCover = Instance.new("Frame")
+AccentCover.Size = UDim2.new(0, 4, 1, 0)
+AccentCover.Position = UDim2.new(1, -4, 0, 0)
+AccentCover.BackgroundColor3 = C3(168, 85, 247)
+AccentCover.BorderSizePixel = 0
+AccentCover.Parent = AccentBar
+
+WatermarkLabel = Instance.new("TextLabel")
+WatermarkLabel.Size = UDim2.new(1, -15, 1, 0)
+WatermarkLabel.Position = UDim2.new(0, 15, 0, 0)
+WatermarkLabel.BackgroundTransparency = 1
+WatermarkLabel.Text = "Lsantas Hack Client  |  FPS: 0"
+WatermarkLabel.TextColor3 = C3(220, 220, 225)
+WatermarkLabel.Font = Enum.Font.GothamBold
+WatermarkLabel.TextSize = 12
+WatermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
+WatermarkLabel.Parent = WatermarkFrame
+
+-- Real-time FPS update loop
+task.spawn(function()
+	local lastTime = tick()
+	local frameCount = 0
+	while task.wait() do
+		if not isRunning then break end
+		frameCount = frameCount + 1
+		local currentTime = tick()
+		if currentTime - lastTime >= 1 then
+			local fps = math.round(frameCount / (currentTime - lastTime))
+			if WatermarkLabel and WatermarkLabel.Parent then
+				WatermarkLabel.Text = "Lsantas Hack Client  |  FPS: " .. fps
+			end
+			frameCount = 0
+			lastTime = currentTime
+		end
+	end
+end)
 
 -- ===== AIMBOT STATE =====
 local aimbotState = {
@@ -1219,6 +1295,12 @@ infoDetails.TextXAlignment = Enum.TextXAlignment.Left
 infoDetails.TextYAlignment = Enum.TextYAlignment.Top
 infoDetails.Parent = infoCard
 
+-- Show Watermark Toggle
+CreateToggle(settingsTab, "Show FPS Watermark", Cfg.ShowWatermark, function(state)
+	Cfg.ShowWatermark = state
+	if WatermarkGui then WatermarkGui.Enabled = state end
+end)
+
 -- 1. Menu Keybind Selector
 local menuKeyContainer = Instance.new("Frame")
 menuKeyContainer.Size = UDim2.new(1, 0, 0, 36)
@@ -1614,12 +1696,22 @@ end)
 task.spawn(function()
 	while task.wait() do
 		if not isRunning then break end
+		local hue = (tick() * 0.15) % 1
+		local color = HSV(hue, 0.8, 1)
+		
 		if Cfg.Enabled and Cfg.VisualsRGB then
-			local hue = (tick() * 0.15) % 1
-			local color = HSV(hue, 0.8, 1)
 			for _, data in pairs(Chams) do
 				if data.Highlight then data.Highlight.FillColor = color end
 				if data.NameLabel then data.NameLabel.TextColor3 = color end
+			end
+			if WatermarkStroke then WatermarkStroke.Color = color end
+			if AccentBar then AccentBar.BackgroundColor3 = color end
+			if AccentCover then AccentCover.BackgroundColor3 = color end
+		else
+			if WatermarkStroke and WatermarkStroke.Color ~= C3(168, 85, 247) then
+				WatermarkStroke.Color = C3(168, 85, 247)
+				AccentBar.BackgroundColor3 = C3(168, 85, 247)
+				AccentCover.BackgroundColor3 = C3(168, 85, 247)
 			end
 		end
 	end
@@ -1661,6 +1753,7 @@ _G.UnloadChams = function()
 	end
 	ClearAll()
 	if Container then Container:Destroy() end
+	if WatermarkGui then WatermarkGui:Destroy() end
 	_G.UnloadChams = nil
 	_G.RefreshChams = nil
 	ScreenGui:Destroy()
