@@ -21,6 +21,87 @@ if not Container then
 	Container.Parent = workspace.CurrentCamera
 end
 
+-- ===== NOTIFICATION SYSTEM =====
+local function ShowNotification(title, text, duration)
+	local NotifGui = Instance.new("ScreenGui")
+	NotifGui.Name = "LsantasNotification"
+	NotifGui.ResetOnSpawn = false
+	NotifGui.DisplayOrder = 1000
+	NotifGui.Parent = LP.PlayerGui
+
+	local NotifFrame = Instance.new("Frame")
+	NotifFrame.Size = UDim2.new(0, 290, 0, 70)
+	NotifFrame.Position = UDim2.new(1, 30, 1, -85)
+	NotifFrame.BackgroundColor3 = C3(18, 18, 24)
+	NotifFrame.BorderSizePixel = 0
+	NotifFrame.Parent = NotifGui
+
+	local NotifCorner = Instance.new("UICorner")
+	NotifCorner.CornerRadius = UDim.new(0, 8)
+	NotifCorner.Parent = NotifFrame
+
+	local NotifStroke = Instance.new("UIStroke")
+	NotifStroke.Thickness = 1.5
+	NotifStroke.Color = C3(168, 85, 247)
+	NotifStroke.Transparency = 0.4
+	NotifStroke.Parent = NotifFrame
+
+	local AccentBar = Instance.new("Frame")
+	AccentBar.Size = UDim2.new(0, 5, 1, 0)
+	AccentBar.BackgroundColor3 = C3(168, 85, 247)
+	AccentBar.BorderSizePixel = 0
+	AccentBar.Parent = NotifFrame
+
+	local AccentCorner = Instance.new("UICorner")
+	AccentCorner.CornerRadius = UDim.new(0, 8)
+	AccentCorner.Parent = AccentBar
+
+	local AccentCover = Instance.new("Frame")
+	AccentCover.Size = UDim2.new(0, 5, 1, 0)
+	AccentCover.Position = UDim2.new(1, -5, 0, 0)
+	AccentCover.BackgroundColor3 = C3(168, 85, 247)
+	AccentCover.BorderSizePixel = 0
+	AccentCover.Parent = AccentBar
+
+	local TitleLabel = Instance.new("TextLabel")
+	TitleLabel.Size = UDim2.new(1, -25, 0, 25)
+	TitleLabel.Position = UDim2.new(0, 15, 0, 8)
+	TitleLabel.BackgroundTransparency = 1
+	TitleLabel.Text = title
+	TitleLabel.TextColor3 = C3(168, 85, 247)
+	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.TextSize = 13
+	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	TitleLabel.Parent = NotifFrame
+
+	local TextLabel = Instance.new("TextLabel")
+	TextLabel.Size = UDim2.new(1, -25, 0, 30)
+	TextLabel.Position = UDim2.new(0, 15, 0, 30)
+	TextLabel.BackgroundTransparency = 1
+	TextLabel.Text = text
+	TextLabel.TextColor3 = C3(200, 200, 205)
+	TextLabel.Font = Enum.Font.GothamMedium
+	TextLabel.TextSize = 11
+	TextLabel.TextWrapped = true
+	TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+	TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+	TextLabel.Parent = NotifFrame
+
+	Tween:Create(NotifFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = UDim2.new(1, -305, 1, -85)
+	}):Play()
+
+	task.delay(duration or 4, function()
+		local slideOut = Tween:Create(NotifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 30, 1, -85)
+		})
+		slideOut:Play()
+		slideOut.Completed:Connect(function()
+			NotifGui:Destroy()
+		end)
+	end)
+end
+
 -- ===== SPLASH =====
 local SplashGui = Instance.new("ScreenGui")
 SplashGui.Name = "SplashScreen"
@@ -114,6 +195,8 @@ local fo = Tween:Create(SubStroke, tOut, {Transparency = 1})
 fo:Play()
 fo.Completed:Wait()
 SplashGui:Destroy()
+
+ShowNotification("Lsantas Visuals", "Hile başarıyla açıldı!\n[RightShift] tuşuna basarak menüyü açabilirsiniz.", 5)
 
 -- ===== CONFIG & STATE =====
 local Cfg = {
