@@ -92,8 +92,70 @@ local Cfg = {
 	SkinChangerEnabled = false,
 	CustomKnifeEnabled = false,
 	SelectedKnife = "Butterfly Knife",
+	Language = "EN",
 }
 local menuOpen = false
+
+-- ===== LANGUAGE SYSTEM =====
+local LANG = {
+	EN = {
+		TAB_VISUALS="VISUALS", TAB_COLORS="COLORS", TAB_AIMBOT="AIMBOT", TAB_SKINS="SKINS", TAB_SETTINGS="SETTINGS",
+		GRP_VISUAL_TOGGLES="Visual Toggles", GRP_TRANSPARENCY="Transparency Settings", GRP_HUD="HUD Indicators",
+		GRP_COLOR_COMPONENT="Select Component", GRP_COLOR_SETTINGS="Color Selection Settings",
+		GRP_AIMBOT_TOGGLES="Aimbot Toggles", GRP_AIM_MECHANICS="Aim Mechanics", GRP_FOV_OVERLAY="FOV Overlay Settings",
+		GRP_CONTROLS="🔧  Controls", GRP_KNIFE_MODEL="🔪  Knife Model", GRP_WEAR_QUALITY="✨  Wear Quality",
+		GRP_KEYBINDS="Client Keybinds", GRP_STATUS="System Status", GRP_LANGUAGE="Language",
+		ENABLE_VISUALS="Enable Visuals", RAINBOW_RGB="Rainbow RGB Mode",
+		SHOW_NAMES="Show Player Names", SHOW_HEALTH="Show Health Bars",
+		ENABLE_AIMBOT="Enable Aimbot", WALL_CHECK="Wall Check (Raycast)",
+		TARGET_PREDICTION="Target Prediction", MOUSE_SIM="Use Mouse Simulation",
+		SHOW_FOV="Show FOV Circle", SKIN_CHANGER="Skin Changer",
+		CUSTOM_KNIFE="Custom Knife (Viewmodel)", SHOW_WATERMARK="Show Watermark",
+		FILL_TR="Fill Transparency", OUTLINE_TR="Outline Transparency",
+		SMOOTHNESS="Smoothness", PRED_FACTOR="Prediction Factor", FOV_RADIUS="FOV Radius",
+		TARGET_PART="Target Part", FOV_COLOR="FOV Circle Color",
+		MENU_KEY="Menu Toggle Key", AIMBOT_KEY="Aimbot Aim Key", AIMBOT_MODE="Aimbot Mode",
+		MOUSE_SIM_NONE="Mouse Sim: Unsupported by Executor",
+		STATUS_INFO="Created by Lsantas\nStatus: Injector Active",
+		UNLOAD_BTN="UNLOAD CLIENT", KNIFE_MODEL="Model", WEAR_LABEL="Wear",
+	},
+	TR = {
+		TAB_VISUALS="GORSELLER", TAB_COLORS="RENKLER", TAB_AIMBOT="AIMBOT", TAB_SKINS="SKINLER", TAB_SETTINGS="AYARLAR",
+		GRP_VISUAL_TOGGLES="Gorsel Secenekler", GRP_TRANSPARENCY="Saydamlik Ayarlari", GRP_HUD="HUD Gostergeleri",
+		GRP_COLOR_COMPONENT="Bilesen Sec", GRP_COLOR_SETTINGS="Renk Secimi Ayarlari",
+		GRP_AIMBOT_TOGGLES="Aimbot Secenekleri", GRP_AIM_MECHANICS="Nizan Menajik", GRP_FOV_OVERLAY="FOV Gostergesi",
+		GRP_CONTROLS="🔧  Kontroller", GRP_KNIFE_MODEL="🔪  Bicak Modeli", GRP_WEAR_QUALITY="✨  Asinma Kalitesi",
+		GRP_KEYBINDS="Tus Atamalari", GRP_STATUS="Sistem Durumu", GRP_LANGUAGE="Dil",
+		ENABLE_VISUALS="Gorselleri Aktif Et", RAINBOW_RGB="Gokkusagi RGB Modu",
+		SHOW_NAMES="Isim Goster", SHOW_HEALTH="Can Bari Goster",
+		ENABLE_AIMBOT="Aimbot Aktif Et", WALL_CHECK="Duvar Kontrolu (Raycast)",
+		TARGET_PREDICTION="Hedef Tahmini", MOUSE_SIM="Fare Simulasyonu",
+		SHOW_FOV="FOV Dairesini Goster", SKIN_CHANGER="Deri Degistirici",
+		CUSTOM_KNIFE="Ozel Bicak (Gorunum)", SHOW_WATERMARK="Filigrani Goster",
+		FILL_TR="Dolgu Saydamligi", OUTLINE_TR="Kenarlk Saydamligi",
+		SMOOTHNESS="Yumusatma", PRED_FACTOR="Tahmin Faktoru", FOV_RADIUS="FOV Yaricapi",
+		TARGET_PART="Hedef Bolum", FOV_COLOR="FOV Dairesi Rengi",
+		MENU_KEY="Menu Tusu", AIMBOT_KEY="Aimbot Tusu", AIMBOT_MODE="Aimbot Modu",
+		MOUSE_SIM_NONE="Fare Sim: Executor Desteklemiyor",
+		STATUS_INFO="Yapan: Lsantas\nDurum: Aktif",
+		UNLOAD_BTN="ISTEMCIYI KALDIR", KNIFE_MODEL="Model", WEAR_LABEL="Asinma",
+	},
+}
+local function T(key)
+	local lt = LANG[Cfg.Language] or LANG["EN"]
+	return lt[key] or LANG["EN"][key] or key
+end
+local LangLabels = {}
+local function RegLabel(obj, key, prefix)
+	table.insert(LangLabels, {obj, key, prefix or ""})
+end
+local function UpdateLanguage()
+	for _, e in ipairs(LangLabels) do
+		local obj, key, prefix = e[1], e[2], e[3]
+		if obj and obj.Parent then obj.Text = prefix .. T(key) end
+	end
+end
+
 
 -- ===== CLEANUP EXISTING INSTANCES =====
 if _G.UnloadChams then _G.UnloadChams() end
@@ -346,7 +408,7 @@ task.spawn(function()
 	PlayPremiumSplash()
 	ShowNotification(
 		"Lsantas Hack Client",
-		"Hile başarıyla aktif edildi!\n[" .. GetInputName(Cfg.MenuKey) .. "] tuşu ile menüyü açabilirsiniz.",
+		"Cheat activated successfully!\nOpen the menu with[" .. GetInputName(Cfg.MenuKey) .. "] key.",
 		6
 	)
 end)
@@ -657,7 +719,7 @@ pcall(SetupAimbotInput)
 pcall(SetupAimbotLoop)
 
 -- ===== UI CORE UTILITIES (Acrylic Style) =====
-local function CreateToggle(parent, labelText, defaultVal, callback)
+local function CreateToggle(parent, labelText, defaultVal, callback, langKey)
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 0, 36)
 	container.BackgroundTransparency = 1
@@ -666,12 +728,13 @@ local function CreateToggle(parent, labelText, defaultVal, callback)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, -50, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = labelText
+	label.Text = langKey and T(langKey) or labelText
 	label.TextColor3 = C3(220, 220, 225)
 	label.Font = Enum.Font.GothamMedium
 	label.TextSize = 13
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = container
+	if langKey then RegLabel(label, langKey) end
 
 	local switchBg = Instance.new("TextButton")
 	switchBg.Size = UDim2.new(0, 42, 0, 22)
@@ -710,7 +773,7 @@ local function CreateToggle(parent, labelText, defaultVal, callback)
 	end)
 end
 
-local function CreateSlider(parent, labelText, minVal, maxVal, defaultVal, callback)
+local function CreateSlider(parent, labelText, minVal, maxVal, defaultVal, callback, langKey)
 	local container = Instance.new("Frame")
 	container.Size = UDim2.new(1, 0, 0, 45)
 	container.BackgroundTransparency = 1
@@ -725,14 +788,19 @@ local function CreateSlider(parent, labelText, minVal, maxVal, defaultVal, callb
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = container
 
+	local baseText = langKey and T(langKey) or labelText
 	local function updateLabelText(val)
+		baseText = langKey and T(langKey) or labelText
 		if maxVal > 5 then
-			label.Text = labelText .. ": " .. math.round(val)
+			label.Text = baseText .. ": " .. math.round(val)
 		else
-			label.Text = labelText .. ": " .. string.format("%.2f", val)
+			label.Text = baseText .. ": " .. string.format("%.2f", val)
 		end
 	end
 	updateLabelText(defaultVal)
+	if langKey then
+		table.insert(LangLabels, {label, langKey, "", function() updateLabelText(currentValue) end})
+	end
 
 	local sliderTrack = Instance.new("Frame")
 	sliderTrack.Size = UDim2.new(1, 0, 0, 6)
@@ -804,7 +872,7 @@ local function CreateSlider(parent, labelText, minVal, maxVal, defaultVal, callb
 end
 
 -- Acrylic Groupbox/Card Creator with premium accent titles
-local function CreateGroupbox(parent, titleText)
+local function CreateGroupbox(parent, titleText, langKey)
 	local card = Instance.new("Frame")
 	card.Size = UDim2.new(1, -10, 0, 40)
 	card.BackgroundColor3 = C3(16, 16, 22)
@@ -820,17 +888,21 @@ local function CreateGroupbox(parent, titleText)
 	cardStroke.Color = C3(26, 26, 36)
 	cardStroke.Parent = card
 
+	local displayText = langKey and T(langKey) or titleText
 	local header = Instance.new("TextLabel")
 	header.Size = UDim2.new(1, -20, 0, 26)
 	header.Position = UDim2.new(0, 10, 0, 4)
 	header.BackgroundTransparency = 1
-	header.Text = string.upper(titleText)
+	header.Text = string.upper(displayText)
 	header.TextColor3 = C3(255, 255, 255)
 	header.Font = Enum.Font.GothamBold
 	header.TextSize = 10
 	header.TextXAlignment = Enum.TextXAlignment.Left
 	header.Parent = card
 	AddPremiumGradient(header)
+	if langKey then
+		table.insert(LangLabels, {header, langKey, "", function(obj, key) obj.Text = string.upper(T(key)) end})
+	end
 
 	local content = Instance.new("Frame")
 	content.Size = UDim2.new(1, -20, 1, -30)
@@ -1006,11 +1078,16 @@ local selectedKnife = "Butterfly Knife"
 local spawned = false
 local inspecting = false
 local swinging = false
-local lastAttackTime = 0
+local lmbHeld = false  -- sol tık basılı tutuluyor mu
+local rmbHeld = false  -- sağ tık basılı tutuluyor mu
+local lastLightAttackTime = 0
+local lastHeavyAttackTime = 0
 
-local ATTACK_COOLDOWN = 1
+local ATTACK_COOLDOWN = 60 / 155  -- Sol tık: 155 BPM ≈ 0.387s
+local HEAVY_COOLDOWN  = 60 / 75   -- Sağ tık: 75 BPM  = 0.800s
 local ACTION_INSPECT = "InspectKnifeAction"
 local ACTION_ATTACK  = "AttackKnifeAction"
+local ACTION_HEAVY   = "HeavyAttackKnifeAction"
 
 local RS = game:GetService("ReplicatedStorage")
 local CAS = game:GetService("ContextActionService")
@@ -1098,15 +1175,14 @@ local function attachAsset(folder, armPartName, assetModelName, finalName, offse
 end
 
 local function handleAction(actionName, inputState, inputObject)
-    if inputState ~= Enum.UserInputState.Begin then
-        return Enum.ContextActionResult.Pass
-    end
-
     if not spawned or not animator or not isAlive() then
         return Enum.ContextActionResult.Pass
     end
 
     if actionName == ACTION_INSPECT then
+        if inputState ~= Enum.UserInputState.Begin then
+            return Enum.ContextActionResult.Pass
+        end
         if (equipAnim and equipAnim.IsPlaying) or inspecting or swinging then
             return Enum.ContextActionResult.Pass
         end
@@ -1117,34 +1193,83 @@ local function handleAction(actionName, inputState, inputObject)
         inspectAnim.Stopped:Once(function() inspecting = false end)
 
     elseif actionName == ACTION_ATTACK then
-        local currentTime = os.clock()
-        if (equipAnim and equipAnim.IsPlaying) or (currentTime - lastAttackTime < ATTACK_COOLDOWN) then
-            return Enum.ContextActionResult.Pass
+        -- Sol tık: 155 BPM ritmiyle tekrarlayan hafif saldırı
+        if inputState == Enum.UserInputState.Begin then
+            lmbHeld = true
+
+            task.spawn(function()
+                while lmbHeld and spawned do
+                    if inspecting then
+                        inspecting = false
+                        if inspectAnim then inspectAnim:Stop() end
+                    end
+
+                    local currentTime = os.clock()
+                    if not (equipAnim and equipAnim.IsPlaying) and (currentTime - lastLightAttackTime >= ATTACK_COOLDOWN) then
+                        lastLightAttackTime = currentTime
+
+                        if Swing1Anim and Swing1Anim.IsPlaying then Swing1Anim:Stop() end
+                        if Swing2Anim and Swing2Anim.IsPlaying then Swing2Anim:Stop() end
+
+                        swinging = true
+                        if idleAnim then idleAnim:Stop() end
+
+                        local lightAnims = {Swing1Anim, Swing2Anim}
+                        local chosenAnim = lightAnims[math.random(1, #lightAnims)]
+                        local soundFolder = (chosenAnim == Swing1Anim and "HitTwo") or "HitThree"
+
+                        chosenAnim:Play()
+                        local s = playSound(soundFolder, "1")
+                        if s then s.Volume = 5 end
+
+                        task.wait(ATTACK_COOLDOWN)
+                        swinging = false
+                    else
+                        task.wait(0.02)
+                    end
+                end
+            end)
+
+        elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+            lmbHeld = false
         end
 
-        lastAttackTime = currentTime
+    elseif actionName == ACTION_HEAVY then
+        -- Sağ tık: 75 BPM ritmiyle tekrarlayan ağır saldırı
+        if inputState == Enum.UserInputState.Begin then
+            rmbHeld = true
 
-        if inspecting then
-            inspecting = false
-            if inspectAnim then inspectAnim:Stop() end
+            task.spawn(function()
+                while rmbHeld and spawned do
+                    if inspecting then
+                        inspecting = false
+                        if inspectAnim then inspectAnim:Stop() end
+                    end
+
+                    local currentTime = os.clock()
+                    if not (equipAnim and equipAnim.IsPlaying) and (currentTime - lastHeavyAttackTime >= HEAVY_COOLDOWN) then
+                        lastHeavyAttackTime = currentTime
+
+                        if HeavySwingAnim and HeavySwingAnim.IsPlaying then HeavySwingAnim:Stop() end
+
+                        swinging = true
+                        if idleAnim then idleAnim:Stop() end
+
+                        HeavySwingAnim:Play()
+                        local s = playSound("HitOne", "1")
+                        if s then s.Volume = 5 end
+
+                        task.wait(HEAVY_COOLDOWN)
+                        swinging = false
+                    else
+                        task.wait(0.02)
+                    end
+                end
+            end)
+
+        elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+            rmbHeld = false
         end
-
-        swinging = true
-        if idleAnim then idleAnim:Stop() end
-
-        local anims = {HeavySwingAnim, Swing1Anim, Swing2Anim}
-        local chosenAnim = anims[math.random(1, #anims)]
-
-        local soundFolder = 
-            (chosenAnim == HeavySwingAnim and "HitOne") or
-            (chosenAnim == Swing1Anim   and "HitTwo") or
-            "HitThree"
-
-        chosenAnim:Play()
-        local s = playSound(soundFolder, "1")
-        if s then s.Volume = 5 end
-
-        chosenAnim.Stopped:Once(function() swinging = false end)
     end
 
     return Enum.ContextActionResult.Pass
@@ -1152,8 +1277,11 @@ end
 
 local function removeViewmodel()
     spawned = false
+    lmbHeld = false
+    rmbHeld = false
     CAS:UnbindAction(ACTION_INSPECT)
     CAS:UnbindAction(ACTION_ATTACK)
+    CAS:UnbindAction(ACTION_HEAVY)
 
     if vm then
         vm:Destroy()
@@ -1217,6 +1345,7 @@ local function spawnViewmodel(knife)
 
     CAS:BindAction(ACTION_INSPECT, handleAction, false, Enum.KeyCode.F)
     CAS:BindAction(ACTION_ATTACK,  handleAction, false, Enum.UserInputType.MouseButton1)
+    CAS:BindAction(ACTION_HEAVY,   handleAction, false, Enum.UserInputType.MouseButton2)
 end
 
 renderSteppedConn = RunService.RenderStepped:Connect(function()
@@ -1354,8 +1483,15 @@ local function SetupSkinListeners()
 	if skinChildConn then skinChildConn:Disconnect() end
 	skinChildConn = camera.ChildAdded:Connect(function(obj)
 		if not SkinChangerEnabled or not isAlive() then return end
-		task.wait(COOLDOWN)
-		applyWeaponSkin(obj)
+		-- Silah yüklenene kadar kısa aralıklarla 3 kez dene
+		for _, delay in ipairs({0.05, 0.2, 0.5}) do
+			task.delay(delay, function()
+				if SkinChangerEnabled and isAlive() then
+					obj:SetAttribute("SkinApplied", nil)
+					applyWeaponSkin(obj)
+				end
+			end)
+		end
 	end)
 end
 SetupSkinListeners()
@@ -1365,10 +1501,11 @@ local function SetupSkinUpdateLoop()
 	skinUpdateLoopConn = task.spawn(function()
 		while true do
 			if not isRunning then break end
-			task.wait(0.5)
+			task.wait(0.2)
 			if SkinChangerEnabled and isAlive() then
 				for _, obj in camera:GetChildren() do
-					if SelectedSkins[obj.Name] and obj:GetAttribute("SkinApplied") ~= SelectedSkins[obj.Name] then
+					-- Attribute kontrolü yok, her zaman uygula (güncel kalsın)
+					if SelectedSkins[obj.Name] then
 						applyWeaponSkin(obj)
 					end
 				end
@@ -1635,14 +1772,11 @@ local function CreateTabButton(name, icon, tabName, order)
 	end)
 end
 
--- Check if game is BloxStrike
-local isBloxStrike = (game.PlaceId == 114234929420007 or game.GameId == 114234929420007)
+-- Always show Skins tab (BloxStrike oyununda kullanılıyor)
+local isBloxStrike = true
 
 -- Create tab scrolling structures
-local tabList = {"Chams", "Colors", "Aimbot", "Settings"}
-if isBloxStrike then
-	table.insert(tabList, 4, "Skins")
-end
+local tabList = {"Chams", "Colors", "Aimbot", "Skins", "Settings"}
 
 for _, tabName in ipairs(tabList) do
 	local f = Instance.new("ScrollingFrame")
@@ -1681,16 +1815,16 @@ local chamsTab = Tabs["Chams"]:FindFirstChildOfClass("Frame")
 
 local visualsCol1, visualsCol2 = CreateTabColumns(chamsTab)
 
-local visualsGroup = CreateGroupbox(visualsCol1, "Visual Toggles")
-local transparencyGroup = CreateGroupbox(visualsCol1, "Transparency Settings")
-local hudGroup = CreateGroupbox(visualsCol2, "HUD Indicators")
+local visualsGroup = CreateGroupbox(visualsCol1, nil, "GRP_VISUAL_TOGGLES")
+local transparencyGroup = CreateGroupbox(visualsCol1, nil, "GRP_TRANSPARENCY")
+local hudGroup = CreateGroupbox(visualsCol2, nil, "GRP_HUD")
 
-CreateToggle(visualsGroup, "Enable Visuals", Cfg.Enabled, function(state)
+CreateToggle(visualsGroup, nil, Cfg.Enabled, function(state)
 	Cfg.Enabled = state
 	_G.RefreshChams()
-end)
+end, "ENABLE_VISUALS")
 
-CreateToggle(visualsGroup, "Rainbow RGB Mode", Cfg.VisualsRGB, function(state)
+CreateToggle(visualsGroup, nil, Cfg.VisualsRGB, function(state)
 	Cfg.VisualsRGB = state
 	if not state then
 		for _, data in pairs(Chams) do
@@ -1698,43 +1832,43 @@ CreateToggle(visualsGroup, "Rainbow RGB Mode", Cfg.VisualsRGB, function(state)
 			if data.NameLabel then data.NameLabel.TextColor3 = Cfg.NameColor end
 		end
 	end
-end)
+end, "RAINBOW_RGB")
 
-CreateSlider(transparencyGroup, "Fill Transparency", 0, 1, Cfg.FillTr, function(val)
+CreateSlider(transparencyGroup, nil, 0, 1, Cfg.FillTr, function(val)
 	Cfg.FillTr = val
 	for _, data in pairs(Chams) do
 		if data.Highlight then data.Highlight.FillTransparency = val end
 	end
-end)
+end, "FILL_TR")
 
-CreateSlider(transparencyGroup, "Outline Transparency", 0, 1, Cfg.OutTr, function(val)
+CreateSlider(transparencyGroup, nil, 0, 1, Cfg.OutTr, function(val)
 	Cfg.OutTr = val
 	for _, data in pairs(Chams) do
 		if data.Highlight then data.Highlight.OutlineTransparency = val end
 	end
-end)
+end, "OUTLINE_TR")
 
-CreateToggle(hudGroup, "Show Player Names", Cfg.ShowNames, function(state)
+CreateToggle(hudGroup, nil, Cfg.ShowNames, function(state)
 	Cfg.ShowNames = state
 	for _, data in pairs(Chams) do
 		if data.NameGui then data.NameGui.Enabled = state end
 	end
-end)
+end, "SHOW_NAMES")
 
-CreateToggle(hudGroup, "Show Health Bars", Cfg.ShowHealth, function(state)
+CreateToggle(hudGroup, nil, Cfg.ShowHealth, function(state)
 	Cfg.ShowHealth = state
 	for _, data in pairs(Chams) do
 		if data.HealthGui then data.HealthGui.Enabled = state end
 	end
-end)
+end, "SHOW_HEALTH")
 
 -- ===== TAB 2: COLORS (Dual column layouts) =====
 local colorsTab = Tabs["Colors"]:FindFirstChildOfClass("Frame")
 
 local colorsCol1, colorsCol2 = CreateTabColumns(colorsTab)
 
-local catSelectorGroup = CreateGroupbox(colorsCol1, "Select Component")
-local colorEditGroup = CreateGroupbox(colorsCol2, "Color Selection Settings")
+local catSelectorGroup = CreateGroupbox(colorsCol1, nil, "GRP_COLOR_COMPONENT")
+local colorEditGroup = CreateGroupbox(colorsCol2, nil, "GRP_COLOR_SETTINGS")
 
 local categorySelector = Instance.new("Frame")
 categorySelector.Size = UDim2.new(1, 0, 0, 145)
@@ -1892,11 +2026,11 @@ local aimbotTab = Tabs["Aimbot"]:FindFirstChildOfClass("Frame")
 
 local aimbotCol1, aimbotCol2 = CreateTabColumns(aimbotTab)
 
-local targetingGroup = CreateGroupbox(aimbotCol1, "Aimbot Toggles")
-local mechanicsGroup = CreateGroupbox(aimbotCol1, "Aim Mechanics")
-local fovOverlayGroup = CreateGroupbox(aimbotCol2, "FOV Overlay Settings")
+local targetingGroup = CreateGroupbox(aimbotCol1, nil, "GRP_AIMBOT_TOGGLES")
+local mechanicsGroup = CreateGroupbox(aimbotCol1, nil, "GRP_AIM_MECHANICS")
+local fovOverlayGroup = CreateGroupbox(aimbotCol2, nil, "GRP_FOV_OVERLAY")
 
-CreateToggle(targetingGroup, "Enable Aimbot", Cfg.AimbotEnabled, function(state)
+CreateToggle(targetingGroup, nil, Cfg.AimbotEnabled, function(state)
 	Cfg.AimbotEnabled = state
 	if not state then
 		aimbotState.active = false
@@ -1904,11 +2038,11 @@ CreateToggle(targetingGroup, "Enable Aimbot", Cfg.AimbotEnabled, function(state)
 	else
 		CreateFovCircle()
 	end
-end)
+end, "ENABLE_AIMBOT")
 
-CreateToggle(targetingGroup, "Wall Check (Raycast)", Cfg.AimbotWallCheck, function(state)
+CreateToggle(targetingGroup, nil, Cfg.AimbotWallCheck, function(state)
 	Cfg.AimbotWallCheck = state
-end)
+end, "WALL_CHECK")
 
 local targetParts = {"Head", "HumanoidRootPart", "UpperTorso", "LowerTorso"}
 local currentTargetIndex = 1
@@ -1921,7 +2055,8 @@ tpContainer.Parent = targetingGroup
 local tpLabel = Instance.new("TextLabel")
 tpLabel.Size = UDim2.new(1, -110, 1, 0)
 tpLabel.BackgroundTransparency = 1
-tpLabel.Text = "Target Part"
+tpLabel.Text = T("TARGET_PART")
+RegLabel(tpLabel, "TARGET_PART")
 tpLabel.TextColor3 = C3(220, 220, 225)
 tpLabel.Font = Enum.Font.GothamMedium
 tpLabel.TextSize = 12
@@ -1948,22 +2083,22 @@ tpBtn.MouseButton1Click:Connect(function()
 	tpBtn.Text = Cfg.AimbotTargetPart
 end)
 
-CreateSlider(mechanicsGroup, "Smoothness", 1, 20, Cfg.AimbotSmoothness, function(val)
+CreateSlider(mechanicsGroup, nil, 1, 20, Cfg.AimbotSmoothness, function(val)
 	Cfg.AimbotSmoothness = val
-end)
+end, "SMOOTHNESS")
 
-CreateToggle(mechanicsGroup, "Target Prediction", Cfg.AimbotPrediction, function(state)
+CreateToggle(mechanicsGroup, nil, Cfg.AimbotPrediction, function(state)
 	Cfg.AimbotPrediction = state
-end)
+end, "TARGET_PREDICTION")
 
-CreateSlider(mechanicsGroup, "Prediction Factor", 0.1, 3.0, Cfg.AimbotPredictionFactor, function(val)
+CreateSlider(mechanicsGroup, nil, 0.1, 3.0, Cfg.AimbotPredictionFactor, function(val)
 	Cfg.AimbotPredictionFactor = val
-end)
+end, "PRED_FACTOR")
 
 if hasMouseSim then
-	CreateToggle(mechanicsGroup, "Use Mouse Simulation", Cfg.UseMouseSimulation, function(state)
+	CreateToggle(mechanicsGroup, nil, Cfg.UseMouseSimulation, function(state)
 		Cfg.UseMouseSimulation = state
-	end)
+	end, "MOUSE_SIM")
 else
 	local simContainer = Instance.new("Frame")
 	simContainer.Size = UDim2.new(1, 0, 0, 36)
@@ -1973,23 +2108,24 @@ else
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
 	label.BackgroundTransparency = 1
-	label.Text = "Mouse Sim: Unsupported by Executor"
+	label.Text = T("MOUSE_SIM_NONE")
 	label.TextColor3 = C3(130, 130, 140)
 	label.Font = Enum.Font.GothamMedium
 	label.TextSize = 12
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = simContainer
+	RegLabel(label, "MOUSE_SIM_NONE")
 end
 
-CreateToggle(fovOverlayGroup, "Show FOV Circle", Cfg.AimbotShowFov, function(state)
+CreateToggle(fovOverlayGroup, nil, Cfg.AimbotShowFov, function(state)
 	Cfg.AimbotShowFov = state
 	if aimbotState.fovCircle then aimbotState.fovCircle.Visible = state and Cfg.AimbotEnabled end
-end)
+end, "SHOW_FOV")
 
-CreateSlider(fovOverlayGroup, "FOV Radius", 30, 500, Cfg.AimbotFov, function(val)
+CreateSlider(fovOverlayGroup, nil, 30, 500, Cfg.AimbotFov, function(val)
 	Cfg.AimbotFov = val
 	if aimbotState.fovCircle then aimbotState.fovCircle.Radius = val end
-end)
+end, "FOV_RADIUS")
 
 local fovColors = {
 	C3(255, 0, 0), C3(0, 255, 0), C3(0, 150, 255), C3(255, 255, 0),
@@ -2005,7 +2141,8 @@ fcContainer.Parent = fovOverlayGroup
 local fcLabel = Instance.new("TextLabel")
 fcLabel.Size = UDim2.new(1, -90, 1, 0)
 fcLabel.BackgroundTransparency = 1
-fcLabel.Text = "FOV Circle Color"
+fcLabel.Text = T("FOV_COLOR")
+RegLabel(fcLabel, "FOV_COLOR")
 fcLabel.TextColor3 = C3(220, 220, 225)
 fcLabel.Font = Enum.Font.GothamMedium
 fcLabel.TextSize = 12
@@ -2031,22 +2168,18 @@ fcBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- ===== TAB 4: SKINS (Dual column layout) =====
+-- ===== TAB 4: SKINS (Redesigned) =====
 if isBloxStrike then
-    local skinsTab = Tabs["Skins"]:FindFirstChildOfClass("Frame")
+    local skinsScrollFrame = Tabs["Skins"]
+    local skinsTabFrame = skinsScrollFrame:FindFirstChildOfClass("Frame")
 
-    local skinsCol1, skinsCol2 = CreateTabColumns(skinsTab)
+    -- Sol sütun: kontroller
+    local skinsCol1, skinsCol2 = CreateTabColumns(skinsTabFrame)
 
-    local togglesGroup = CreateGroupbox(skinsCol1, "Skin Changer Toggles")
-    local knifeSettingsGroup = CreateGroupbox(skinsCol1, "Knife Settings")
-    local glovesGroup = CreateGroupbox(skinsCol1, "CT & T | Gloves")
+    -- ── SOL SÜTUN ──────────────────────────────────────────────
+    local controlGroup = CreateGroupbox(skinsCol1, "🔧  Controls")
 
-    local knivesSkinsGroup = CreateGroupbox(skinsCol2, "Knives Skins")
-    local ctWeaponsGroup = CreateGroupbox(skinsCol2, "CT | Weapons Skins")
-    local tWeaponsGroup = CreateGroupbox(skinsCol2, "T | Weapons Skins")
-    local miscGroup = CreateGroupbox(skinsCol2, "Miscellaneous Skins")
-
-    CreateToggle(togglesGroup, "Enable SkinChanger", SkinChangerEnabled, function(Value)
+    CreateToggle(controlGroup, "Skin Changer", SkinChangerEnabled, function(Value)
         SkinChangerEnabled = Value
         if not Value then
             RestoreSkins()
@@ -2058,75 +2191,376 @@ if isBloxStrike then
         end
     end)
 
-    CreateToggle(togglesGroup, "Enable Custom Knife", scriptRunning, function(Value)
+    CreateToggle(controlGroup, "Custom Knife (Viewmodel)", scriptRunning, function(Value)
         scriptRunning = Value
-        if not Value then
-            removeViewmodel()
-        end
+        if not Value then removeViewmodel() end
     end)
 
-    CreateDropdown(knifeSettingsGroup, "Selected Custom Knife", {"Butterfly Knife", "Karambit", "M9 Bayonet", "Flip Knife", "Gut Knife"}, selectedKnife, function(val)
+    local knifeGroup = CreateGroupbox(skinsCol1, "🔪  Knife Model")
+    CreateDropdown(knifeGroup, "Model", {"Butterfly Knife", "Karambit", "M9 Bayonet", "Flip Knife", "Gut Knife"}, selectedKnife, function(val)
         selectedKnife = val
-        if spawned then
-            removeViewmodel()
+        if spawned then removeViewmodel() end
+    end)
+
+    local wearGroup = CreateGroupbox(skinsCol1, "✨  Wear Quality")
+    local wearList = {"Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"}
+    CreateDropdown(wearGroup, "Wear", wearList, WEAR, function(val)
+        WEAR = val
+        for _, obj in ipairs(camera:GetChildren()) do
+            obj:SetAttribute("SkinApplied", nil)
+            applyWeaponSkin(obj)
         end
     end)
 
-    local function CreateSkinDropdown(weaponName, groupbox)
-        local folder = SkinsFolder:FindFirstChild(weaponName)
-        if not folder then return end
+    -- ── SAĞ SÜTUN ─────────────────────────────────────────────
+    -- Kategori tanımları
+    local categories = {
+        { key = "knives",  label = "🔪 Knives",     icon = "🔪", color = C3(168, 85, 247),  weapons = {} },
+        { key = "gloves",  label = "🧤 Gloves",     icon = "🧤", color = C3(34, 197, 94),   weapons = {} },
+        { key = "ct",      label = "🛡️ CT Weapons", icon = "🛡️", color = C3(56, 189, 248),  weapons = {} },
+        { key = "t",       label = "💣 T Weapons",  icon = "💣", color = C3(251, 146, 60),  weapons = {} },
+        { key = "misc",    label = "📦 Misc",       icon = "📦", color = C3(148, 163, 184), weapons = {} },
+    }
 
-        local options = {}
-        for _, skin in ipairs(folder:GetChildren()) do
-            table.insert(options, skin.Name)
-        end
-        if #options == 0 then return end
-
-        if not SelectedSkins[weaponName] then
-            SelectedSkins[weaponName] = options[1]
-        end
-
-        local dp = CreateDropdown(groupbox, weaponName, options, SelectedSkins[weaponName], function(newSkin)
-            SelectedSkins[weaponName] = newSkin
-
-            for _, obj in ipairs(camera:GetChildren()) do
-                obj:SetAttribute("SkinApplied", nil)
-                applyWeaponSkin(obj)
-            end
-        end)
-
-        DropdownObjects[weaponName] = DropdownObjects[weaponName] or {}
-        table.insert(DropdownObjects[weaponName], dp)
-    end
-
-    -- Generate Glove dropdowns
-    for name in pairs(GLOVES) do
-        CreateSkinDropdown(name, glovesGroup)
-    end
-
-    -- Generate Knife dropdowns
-    for name in pairs(KNIVES) do
-        CreateSkinDropdown(name, knivesSkinsGroup)
-    end
-
-    -- Generate CT Weapon dropdowns
-    for name in pairs(CT_ONLY) do
-        CreateSkinDropdown(name, ctWeaponsGroup)
-    end
-
-    -- Generate T Weapon dropdowns
-    for name in pairs(SHARED) do
-        CreateSkinDropdown(name, tWeaponsGroup)
-    end
-
-    -- Generate Miscellaneous dropdowns
+    -- Silahları kategorilere dağıt
+    for name in pairs(KNIVES) do table.insert(categories[1].weapons, name) end
+    for name in pairs(GLOVES) do table.insert(categories[2].weapons, name) end
+    for name in pairs(CT_ONLY) do table.insert(categories[3].weapons, name) end
+    for name in pairs(SHARED) do table.insert(categories[4].weapons, name) end
     for _, folder in ipairs(SkinsFolder:GetChildren()) do
         local n = folder.Name
         if not IgnoreFolders[n] and not KNIVES[n] and not GLOVES[n] and not CT_ONLY[n] and not SHARED[n] then
-            CreateSkinDropdown(n, miscGroup)
+            table.insert(categories[5].weapons, n)
         end
     end
+
+    -- Kategori buton kartı (sağ sütunun üstü)
+    local catCard = Instance.new("Frame")
+    catCard.Size = UDim2.new(1, -10, 0, 44)
+    catCard.BackgroundColor3 = C3(16, 16, 22)
+    catCard.BorderSizePixel = 0
+    catCard.Parent = skinsCol2
+
+    local catCardCorner = Instance.new("UICorner")
+    catCardCorner.CornerRadius = UDim.new(0, 8)
+    catCardCorner.Parent = catCard
+
+    local catCardStroke = Instance.new("UIStroke")
+    catCardStroke.Thickness = 1
+    catCardStroke.Color = C3(26, 26, 36)
+    catCardStroke.Parent = catCard
+
+    local catBarLayout = Instance.new("UIListLayout")
+    catBarLayout.FillDirection = Enum.FillDirection.Horizontal
+    catBarLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    catBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    catBarLayout.Padding = UDim.new(0, 4)
+    catBarLayout.Parent = catCard
+
+    -- Skin liste kartı (sağ sütunun altı)
+    local skinListCard = Instance.new("Frame")
+    skinListCard.Size = UDim2.new(1, -10, 0, 40)
+    skinListCard.BackgroundColor3 = C3(16, 16, 22)
+    skinListCard.BorderSizePixel = 0
+    skinListCard.Parent = skinsCol2
+
+    local skinListCardCorner = Instance.new("UICorner")
+    skinListCardCorner.CornerRadius = UDim.new(0, 8)
+    skinListCardCorner.Parent = skinListCard
+
+    local skinListCardStroke = Instance.new("UIStroke")
+    skinListCardStroke.Thickness = 1
+    skinListCardStroke.Color = C3(26, 26, 36)
+    skinListCardStroke.Parent = skinListCard
+
+    -- Kategori başlığı
+    local skinCatHeader = Instance.new("TextLabel")
+    skinCatHeader.Size = UDim2.new(1, -12, 0, 26)
+    skinCatHeader.Position = UDim2.new(0, 10, 0, 4)
+    skinCatHeader.BackgroundTransparency = 1
+    skinCatHeader.Text = "🔪  KNIVES"
+    skinCatHeader.TextColor3 = C3(255, 255, 255)
+    skinCatHeader.Font = Enum.Font.GothamBold
+    skinCatHeader.TextSize = 10
+    skinCatHeader.TextXAlignment = Enum.TextXAlignment.Left
+    skinCatHeader.Parent = skinListCard
+    AddPremiumGradient(skinCatHeader)
+
+    -- İç scroll frame
+    local skinScrollInner = Instance.new("ScrollingFrame")
+    skinScrollInner.Size = UDim2.new(1, -8, 1, -36)
+    skinScrollInner.Position = UDim2.new(0, 4, 0, 32)
+    skinScrollInner.BackgroundTransparency = 1
+    skinScrollInner.BorderSizePixel = 0
+    skinScrollInner.ScrollBarThickness = 3
+    skinScrollInner.ScrollBarImageColor3 = C3(168, 85, 247)
+    skinScrollInner.CanvasSize = UDim2.new(0, 0, 0, 0)
+    skinScrollInner.Parent = skinListCard
+
+    local skinScrollLayout = Instance.new("UIListLayout")
+    skinScrollLayout.Padding = UDim.new(0, 4)
+    skinScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    skinScrollLayout.Parent = skinScrollInner
+
+    skinScrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        local h = skinScrollLayout.AbsoluteContentSize.Y
+        skinScrollInner.CanvasSize = UDim2.new(0, 0, 0, h)
+        skinListCard.Size = UDim2.new(1, -10, 0, math.clamp(h + 44, 80, 340))
+    end)
+
+    -- Mevcut skin satırlarını temizle ve yeniden oluştur
+    local activeCatIndex = 1
+    local catButtons = {}
+    local activeDropdown = nil  -- şu an açık olan dropdown (kapatılabilmesi için)
+
+    local function BuildSkinList(catIndex)
+        -- Eski satırları temizle
+        for _, child in ipairs(skinScrollInner:GetChildren()) do
+            if not child:IsA("UIListLayout") then child:Destroy() end
+        end
+
+        local cat = categories[catIndex]
+        skinCatHeader.Text = cat.icon .. "  " .. string.upper(cat.label:match("[^ ]+ (.+)") or cat.label)
+
+        -- Her silah için bir satır
+        for _, weaponName in ipairs(cat.weapons) do
+            local wFolder = SkinsFolder:FindFirstChild(weaponName)
+            if not wFolder then continue end
+
+            local opts = {}
+            for _, sk in ipairs(wFolder:GetChildren()) do
+                table.insert(opts, sk.Name)
+            end
+            if #opts == 0 then continue end
+
+            if not SelectedSkins[weaponName] then
+                SelectedSkins[weaponName] = opts[1]
+            end
+
+            -- Satır kapsayıcı
+            local row = Instance.new("Frame")
+            row.Size = UDim2.new(1, -4, 0, 34)
+            row.BackgroundColor3 = C3(20, 20, 28)
+            row.BorderSizePixel = 0
+            row.Parent = skinScrollInner
+
+            local rowCorner = Instance.new("UICorner")
+            rowCorner.CornerRadius = UDim.new(0, 6)
+            rowCorner.Parent = row
+
+            -- Sol: silah adı
+            local weapLabel = Instance.new("TextLabel")
+            weapLabel.Size = UDim2.new(0.42, 0, 1, 0)
+            weapLabel.Position = UDim2.new(0, 8, 0, 0)
+            weapLabel.BackgroundTransparency = 1
+            weapLabel.Text = weaponName
+            weapLabel.TextColor3 = C3(200, 200, 215)
+            weapLabel.Font = Enum.Font.GothamMedium
+            weapLabel.TextSize = 10
+            weapLabel.TextXAlignment = Enum.TextXAlignment.Left
+            weapLabel.TextTruncate = Enum.TextTruncate.AtEnd
+            weapLabel.Parent = row
+
+            -- Sağ: dropdown butonu
+            local ddBtn = Instance.new("TextButton")
+            ddBtn.Size = UDim2.new(0.54, -4, 0, 22)
+            ddBtn.Position = UDim2.new(0.44, 0, 0.5, -11)
+            ddBtn.BackgroundColor3 = C3(30, 30, 40)
+            ddBtn.Text = SelectedSkins[weaponName]
+            ddBtn.TextColor3 = C3(255, 255, 255)
+            ddBtn.Font = Enum.Font.GothamBold
+            ddBtn.TextSize = 9
+            ddBtn.BorderSizePixel = 0
+            ddBtn.TextTruncate = Enum.TextTruncate.AtEnd
+            ddBtn.ZIndex = 5
+            ddBtn.Parent = row
+
+            local ddBtnCorner = Instance.new("UICorner")
+            ddBtnCorner.CornerRadius = UDim.new(0, 5)
+            ddBtnCorner.Parent = ddBtn
+            AddPremiumGradient(ddBtn)
+
+            -- Dropdown list — skinListCard'a parent olacak (kırpılmasın)
+            local ddList = Instance.new("ScrollingFrame")
+            ddList.Size = UDim2.new(0, 0, 0, 0)
+            ddList.BackgroundColor3 = C3(18, 18, 26)
+            ddList.BorderSizePixel = 0
+            ddList.ZIndex = 40
+            ddList.ScrollBarThickness = 2
+            ddList.ScrollBarImageColor3 = C3(168, 85, 247)
+            ddList.Visible = false
+            ddList.ClipsDescendants = true
+            ddList.Parent = skinListCard  -- scroll frame yerine kart içine
+
+            local ddListCorner = Instance.new("UICorner")
+            ddListCorner.CornerRadius = UDim.new(0, 5)
+            ddListCorner.Parent = ddList
+
+            local ddListStroke = Instance.new("UIStroke")
+            ddListStroke.Thickness = 1
+            ddListStroke.Color = C3(168, 85, 247)
+            ddListStroke.Transparency = 0.6
+            ddListStroke.Parent = ddList
+
+            local ddLayout = Instance.new("UIListLayout")
+            ddLayout.Padding = UDim.new(0, 1)
+            ddLayout.Parent = ddList
+
+            local ddOpen = false
+
+            local function closeDD()
+                ddOpen = false
+                ddList.Visible = false
+                ddList.Size = UDim2.new(0, 0, 0, 0)
+                if activeDropdown == closeDD then
+                    activeDropdown = nil
+                end
+            end
+
+            local function toggleDD()
+                -- Önce varsa başka açık dropdown'u kapat
+                if activeDropdown and activeDropdown ~= closeDD then
+                    activeDropdown()
+                end
+
+                ddOpen = not ddOpen
+                if ddOpen then
+                    local h = math.clamp(#opts * 20 + 2, 20, 110)
+                    local btnAbs = ddBtn.AbsolutePosition
+                    local cardAbs = skinListCard.AbsolutePosition
+
+                    -- Butonun skinListCard'a göre konumu
+                    local relX = btnAbs.X - cardAbs.X
+                    local relY = btnAbs.Y - cardAbs.Y
+
+                    -- Yukarı mı aşağı mı açılsın?
+                    local cardH = skinListCard.AbsoluteSize.Y
+                    local openUp = (relY + 22 + h) > cardH
+
+                    if openUp then
+                        ddList.Position = UDim2.new(0, relX, 0, relY - h - 2)
+                    else
+                        ddList.Position = UDim2.new(0, relX, 0, relY + 22 + 2)
+                    end
+
+                    ddList.Size = UDim2.new(0, ddBtn.AbsoluteSize.X, 0, h)
+                    ddList.CanvasSize = UDim2.new(0, 0, 0, #opts * 20 + 2)
+                    ddList.Visible = true
+                    activeDropdown = closeDD
+                else
+                    closeDD()
+                end
+            end
+
+            ddBtn.MouseButton1Click:Connect(toggleDD)
+
+            for _, opt in ipairs(opts) do
+                local optBtn = Instance.new("TextButton")
+                optBtn.Size = UDim2.new(1, 0, 0, 19)
+                optBtn.BackgroundTransparency = 1
+                optBtn.Text = "  " .. opt
+                optBtn.TextColor3 = C3(180, 180, 195)
+                optBtn.Font = Enum.Font.GothamMedium
+                optBtn.TextSize = 9
+                optBtn.TextXAlignment = Enum.TextXAlignment.Left
+                optBtn.TextTruncate = Enum.TextTruncate.AtEnd
+                optBtn.BorderSizePixel = 0
+                optBtn.ZIndex = 50
+                optBtn.Parent = ddList
+
+                optBtn.MouseEnter:Connect(function()
+                    optBtn.BackgroundColor3 = C3(35, 35, 50)
+                    optBtn.BackgroundTransparency = 0
+                    optBtn.TextColor3 = C3(255, 255, 255)
+                end)
+                optBtn.MouseLeave:Connect(function()
+                    optBtn.BackgroundColor3 = C3(18, 18, 26)
+                    optBtn.BackgroundTransparency = 0.3
+                    optBtn.TextColor3 = C3(200, 200, 215)
+                end)
+                optBtn.MouseButton1Click:Connect(function()
+                    SelectedSkins[weaponName] = opt
+                    ddBtn.Text = opt
+                    closeDD()
+                    for _, obj in ipairs(camera:GetChildren()) do
+                        obj:SetAttribute("SkinApplied", nil)
+                        applyWeaponSkin(obj)
+                    end
+                end)
+            end
+        end
+    end
+
+    -- Kategori butonlarını oluştur
+    for i, cat in ipairs(categories) do
+        local catBtn = Instance.new("TextButton")
+        catBtn.Size = UDim2.new(0, 56, 0, 28)
+        catBtn.BackgroundColor3 = (i == 1) and cat.color or C3(24, 24, 32)
+        catBtn.Text = cat.icon
+        catBtn.Font = Enum.Font.GothamBold
+        catBtn.TextSize = 13
+        catBtn.BorderSizePixel = 0
+        catBtn.ZIndex = 3
+        catBtn.Parent = catCard
+
+        local catBtnCorner = Instance.new("UICorner")
+        catBtnCorner.CornerRadius = UDim.new(0, 6)
+        catBtnCorner.Parent = catBtn
+
+        local catBtnStroke = Instance.new("UIStroke")
+        catBtnStroke.Thickness = 1
+        catBtnStroke.Color = (i == 1) and cat.color or C3(40, 40, 50)
+        catBtnStroke.Parent = catBtn
+
+        catButtons[i] = { btn = catBtn, stroke = catBtnStroke, cat = cat }
+
+        catBtn.MouseButton1Click:Connect(function()
+            -- Önceki butonu sıfırla
+            local prev = catButtons[activeCatIndex]
+            if prev then
+                TweenService:Create(prev.btn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = C3(24, 24, 32)}):Play()
+                prev.stroke.Color = C3(40, 40, 50)
+            end
+            -- Yeni butonu vurgula
+            activeCatIndex = i
+            TweenService:Create(catBtn, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {BackgroundColor3 = cat.color}):Play()
+            catBtnStroke.Color = cat.color
+            -- Listeyi yenile
+            BuildSkinList(i)
+        end)
+
+        catBtn.MouseEnter:Connect(function()
+            if activeCatIndex ~= i then
+                TweenService:Create(catBtn, TweenInfo.new(0.1), {BackgroundColor3 = C3(32, 32, 44)}):Play()
+            end
+        end)
+        catBtn.MouseLeave:Connect(function()
+            if activeCatIndex ~= i then
+                TweenService:Create(catBtn, TweenInfo.new(0.1), {BackgroundColor3 = C3(24, 24, 32)}):Play()
+            end
+        end)
+    end
+
+    -- TÜM kategorilerdeki tüm silahlar için varsayılan skin seçimlerini önceden doldur
+    -- (Menü açılmadan da skin uygulanabilsin)
+    for _, cat in ipairs(categories) do
+        for _, weaponName in ipairs(cat.weapons) do
+            if not SelectedSkins[weaponName] then
+                local wFolder = SkinsFolder:FindFirstChild(weaponName)
+                if wFolder then
+                    local children = wFolder:GetChildren()
+                    if #children > 0 then
+                        SelectedSkins[weaponName] = children[1].Name
+                    end
+                end
+            end
+        end
+    end
+
+    -- Başlangıçta bıçakları göster
+    BuildSkinList(1)
 end
+
 
 -- ===== TAB 5: SETTINGS (Dual column layout) =====
 local settingsTab = Tabs["Settings"]:FindFirstChildOfClass("Frame")
