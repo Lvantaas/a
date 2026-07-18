@@ -99,6 +99,11 @@ local Cfg = {
 	-- Arsenal Specific Team Check
 	TeamCheckVisuals = false,
 	TeamCheckAimbot = false,
+	Bunnyhop = false,
+	SpeedEnabled = false,
+	SpeedValue = 50,
+	SkeletonEspEnabled = false,
+	SkeletonColor = C3(255, 255, 255),
 }
 local menuOpen = false
 
@@ -125,6 +130,11 @@ local LANG = {
 		STATUS_INFO="Created by Lsantas\nStatus: Injector Active",
 		UNLOAD_BTN="UNLOAD CLIENT", KNIFE_MODEL="Model", WEAR_LABEL="Wear",
 		TEAM_CHECK="Team Check",
+		GRP_MISC="Misc Features",
+		BUNNYHOP="Bunnyhop",
+		SPEED_ENABLED="Speed Hack",
+		SPEED_VALUE="Speed Value",
+		ENABLE_SKELETON="Skeleton ESP",
 	},
 	TR = {
 		TAB_VISUALS="GORSELLER", TAB_COLORS="RENKLER", TAB_AIMBOT="AIMBOT", TAB_SKINS="SKINLER", TAB_SETTINGS="AYARLAR",
@@ -147,6 +157,11 @@ local LANG = {
 		STATUS_INFO="Yapan: Lsantas\nDurum: Aktif",
 		UNLOAD_BTN="ISTEMCIYI KALDIR", KNIFE_MODEL="Model", WEAR_LABEL="Asinma",
 		TEAM_CHECK="Takım Kontrolü",
+		GRP_MISC="Genel Özellikler",
+		BUNNYHOP="Bunnyhop",
+		SPEED_ENABLED="Hız Hilesi (Speed Hack)",
+		SPEED_VALUE="Hız Değeri",
+		ENABLE_SKELETON="Kemik ESP (Skeleton)",
 	},
 }
 local function T(key)
@@ -1830,7 +1845,7 @@ local function CreateTabButton(name, icon, tabName, order)
 end
 
 -- Create tab scrolling structures
-local tabList = {"Chams", "Colors", "Aimbot", "Settings"}
+local tabList = {"Chams", "Colors", "Aimbot", "Misc", "Settings"}
 if isBloxStrike and SkinsFolder then
     table.insert(tabList, 4, "Skins")
 end
@@ -1859,12 +1874,15 @@ CreateTabButton("VISUALS", "⚡", "Chams", 1)
 CreateTabButton("COLORS", "🎨", "Colors", 2)
 CreateTabButton("AIMBOT", "🎯", "Aimbot", 3)
 
-local settingsOrder = 4
+local miscOrder = 4
+local settingsOrder = 5
 if isBloxStrike and SkinsFolder then
 	CreateTabButton("SKINS", "🔪", "Skins", 4)
-	settingsOrder = 5
+	miscOrder = 5
+	settingsOrder = 6
 end
 
+CreateTabButton("MISC", "📦", "Misc", miscOrder)
 CreateTabButton("SETTINGS", "⚙️", "Settings", settingsOrder)
 
 -- ===== TAB 1: VISUALS (Dual column acrylic grids) =====
@@ -1880,6 +1898,11 @@ CreateToggle(visualsGroup, nil, Cfg.Enabled, function(state)
 	Cfg.Enabled = state
 	_G.RefreshChams()
 end, "ENABLE_VISUALS")
+
+CreateToggle(visualsGroup, nil, Cfg.SkeletonEspEnabled, function(state)
+	Cfg.SkeletonEspEnabled = state
+	_G.RefreshChams()
+end, "ENABLE_SKELETON")
 
 CreateToggle(visualsGroup, nil, Cfg.VisualsRGB, function(state)
 	Cfg.VisualsRGB = state
@@ -1943,8 +1966,8 @@ local categorySelectorLayout = Instance.new("UIListLayout")
 categorySelectorLayout.Padding = UDim.new(0, 8)
 categorySelectorLayout.Parent = categorySelector
 
-local categories = {"ChamColor", "OutlineColor", "NameColor", "AimbotFovColor"}
-local categoryNames = {"Cham Fill", "Outline", "Names", "Aimbot FOV"}
+local categories = {"ChamColor", "OutlineColor", "NameColor", "SkeletonColor", "AimbotFovColor"}
+local categoryNames = {"Cham Fill", "Outline", "Names", "Skeleton", "Aimbot FOV"}
 local categoryButtons = {}
 local activeCategory = "ChamColor"
 
@@ -2001,6 +2024,8 @@ local function updateColorsFromSliders()
 			for _, data in pairs(Chams) do
 				if data.NameLabel then data.NameLabel.TextColor3 = col end
 			end
+		elseif activeCategory == "SkeletonColor" then
+			-- Handled dynamically in skeleton loop
 		elseif activeCategory == "AimbotFovColor" then
 			if aimbotState.fovCircle then aimbotState.fovCircle.Color = col end
 		end
@@ -2641,6 +2666,22 @@ if isBloxStrike and SkinsFolder then
     BuildSkinList(1)
 end
 
+-- ===== TAB 4.5: MISC (Dual column layout) =====
+local miscTab = Tabs["Misc"]:FindFirstChildOfClass("Frame")
+local miscCol1, miscCol2 = CreateTabColumns(miscTab)
+local miscGroup = CreateGroupbox(miscCol1, nil, "GRP_MISC")
+
+CreateToggle(miscGroup, nil, Cfg.Bunnyhop, function(state)
+	Cfg.Bunnyhop = state
+end, "BUNNYHOP")
+
+CreateToggle(miscGroup, nil, Cfg.SpeedEnabled, function(state)
+	Cfg.SpeedEnabled = state
+end, "SPEED_ENABLED")
+
+CreateSlider(miscGroup, nil, 16, 150, Cfg.SpeedValue, function(val)
+	Cfg.SpeedValue = val
+end, "SPEED_VALUE")
 
 -- ===== TAB 5: SETTINGS (Dual column layout) =====
 local settingsTab = Tabs["Settings"]:FindFirstChildOfClass("Frame")
@@ -2872,6 +2913,11 @@ local function ClearPlayer(Plr)
 		if data.NameGui then data.NameGui:Destroy() end
 		if data.HealthGui then data.HealthGui:Destroy() end
 		if data.HealthConn then data.HealthConn:Disconnect() end
+		if data.SkeletonLines then
+			for _, item in ipairs(data.SkeletonLines) do
+				pcall(function() item.line:Remove() end)
+			end
+		end
 		Chams[Plr] = nil
 	end
 end
@@ -2880,6 +2926,59 @@ local function ClearAll()
 	for plr in pairs(Chams) do
 		ClearPlayer(plr)
 	end
+end
+
+local function CreateSkeletonLines(data, Chr)
+	local lines = {}
+	local hum = Chr:FindFirstChildOfClass("Humanoid")
+	local isR15 = hum and hum.RigType == Enum.HumanoidRigType.R15 or false
+	
+	local connections = {}
+	if isR15 then
+		connections = {
+			{"Head", "UpperTorso"},
+			{"UpperTorso", "LowerTorso"},
+			
+			-- Left arm
+			{"UpperTorso", "LeftUpperArm"},
+			{"LeftUpperArm", "LeftLowerArm"},
+			{"LeftLowerArm", "LeftHand"},
+			
+			-- Right arm
+			{"UpperTorso", "RightUpperArm"},
+			{"RightUpperArm", "RightLowerArm"},
+			{"RightLowerArm", "RightHand"},
+			
+			-- Left leg
+			{"LowerTorso", "LeftUpperLeg"},
+			{"LeftUpperLeg", "LeftLowerLeg"},
+			{"LeftLowerLeg", "LeftFoot"},
+			
+			-- Right leg
+			{"LowerTorso", "RightUpperLeg"},
+			{"RightUpperLeg", "RightLowerLeg"},
+			{"RightLowerLeg", "RightFoot"}
+		}
+	else
+		connections = {
+			{"Head", "Torso"},
+			{"Torso", "Left Arm"},
+			{"Torso", "Right Arm"},
+			{"Torso", "Left Leg"},
+			{"Torso", "Right Leg"}
+		}
+	end
+	
+	for _, conn in ipairs(connections) do
+		local line = Drawing.new("Line")
+		line.Thickness = 1.5
+		line.Transparency = 1.0
+		line.Color = Cfg.OutlineColor
+		line.Visible = false
+		table.insert(lines, {line = line, part1 = conn[1], part2 = conn[2]})
+	end
+	
+	data.SkeletonLines = lines
 end
 
 local function Paint(Chr, Plr)
@@ -3117,6 +3216,107 @@ task.spawn(function()
 	end
 end)
 
+-- ===== BUNNYHOP LOOP =====
+task.spawn(function()
+	while task.wait() do
+		if not isRunning then break end
+		if Cfg.Bunnyhop then
+			local char = LP.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Parent then
+				local isSpaceDown = UserInputService:IsKeyDown(Enum.KeyCode.Space)
+				local isChatting = UserInputService:GetFocusedTextBox() ~= nil
+				if isSpaceDown and not isChatting then
+					if hum.FloorMaterial ~= Enum.Material.Air then
+						hum.Jump = true
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- ===== SPEED LOOP =====
+local speedConnection
+local lastSpeedState = false
+local function SetupSpeed()
+	if speedConnection then speedConnection:Disconnect() end
+	speedConnection = RunService.RenderStepped:Connect(function()
+		if isRunning and Cfg.SpeedEnabled then
+			local char = LP.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Parent then
+				hum.WalkSpeed = Cfg.SpeedValue
+				lastSpeedState = true
+			end
+		else
+			if lastSpeedState then
+				pcall(function()
+					local char = LP.Character
+					local hum = char and char:FindFirstChildOfClass("Humanoid")
+					if hum then hum.WalkSpeed = 16 end
+				end)
+				lastSpeedState = false
+			end
+		end
+	end)
+end
+SetupSpeed()
+
+-- ===== SKELETON ESP LOOP =====
+local skeletonConnection
+local function SetupSkeletonLoop()
+	if skeletonConnection then skeletonConnection:Disconnect() end
+	skeletonConnection = RunService.RenderStepped:Connect(function()
+		if not isRunning then return end
+		local hue = (tick() * 0.15) % 1
+		local rainbowColor = HSV(hue, 0.8, 1)
+		
+		for Plr, data in pairs(Chams) do
+			local char = Plr.Character
+			local isTeammate = isTeammateVisuals(Plr)
+			local showSkeleton = Cfg.Enabled and Cfg.SkeletonEspEnabled and char and char.Parent and not isTeammate
+			
+			if showSkeleton then
+				if not data.SkeletonLines then
+					CreateSkeletonLines(data, char)
+				end
+				
+				if data.SkeletonLines then
+					local color = Cfg.VisualsRGB and rainbowColor or Cfg.SkeletonColor
+					for _, item in ipairs(data.SkeletonLines) do
+						local p1 = char:FindFirstChild(item.part1)
+						local p2 = char:FindFirstChild(item.part2)
+						if p1 and p2 then
+							local pos1, onScreen1 = camera:WorldToViewportPoint(p1.Position)
+							local pos2, onScreen2 = camera:WorldToViewportPoint(p2.Position)
+							
+							if onScreen1 and onScreen2 then
+								item.line.From = Vector2.new(pos1.X, pos1.Y)
+								item.line.To = Vector2.new(pos2.X, pos2.Y)
+								item.line.Color = color
+								item.line.Visible = true
+							else
+								item.line.Visible = false
+							end
+						else
+							item.line.Visible = false
+						end
+					end
+				end
+			else
+				if data.SkeletonLines then
+					for _, item in ipairs(data.SkeletonLines) do
+						pcall(function() item.line:Remove() end)
+					end
+					data.SkeletonLines = nil
+				end
+			end
+		end
+	end)
+end
+SetupSkeletonLoop()
+
 -- ===== KEYBIND TO TOGGLE MENU =====
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
@@ -3139,9 +3339,16 @@ _G.UnloadChams = function()
 	SkinChangerEnabled = false
 	pcall(removeViewmodel)
 	pcall(RestoreSkins)
+	pcall(function()
+		local char = LP.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.WalkSpeed = 16 end
+	end)
 
 	if renderSteppedConn then renderSteppedConn:Disconnect() end
 	if skinChildConn then skinChildConn:Disconnect() end
+	if speedConnection then speedConnection:Disconnect() end
+	if skeletonConnection then skeletonConnection:Disconnect() end
 
 	for _, conn in pairs(aimbotState.connections) do
 		if conn and conn.Disconnect then conn:Disconnect() end
