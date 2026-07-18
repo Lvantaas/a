@@ -1105,28 +1105,19 @@ local selectedKnife = "Butterfly Knife"
 local spawned = false
 local inspecting = false
 local swinging = false
-local lmbHeld = false  -- sol tık basılı tutuluyor mu
-local rmbHeld = false  -- sağ tık basılı tutuluyor mu
-local lastLightAttackTime = 0
-local lastHeavyAttackTime = 0
-
-local ATTACK_COOLDOWN = 60 / 155  -- Sol tık: 155 BPM ≈ 0.387s
-local HEAVY_COOLDOWN  = 60 / 75   -- Sağ tık: 75 BPM  = 0.800s
 local ACTION_INSPECT = "InspectKnifeAction"
 local ACTION_ATTACK  = "AttackKnifeAction"
-local ACTION_HEAVY   = "HeavyAttackKnifeAction"
 
 local RS = game:GetService("ReplicatedStorage")
 local CAS = game:GetService("ContextActionService")
 
-Characters = workspace:WaitForChild("Characters", 2)
-isBloxStrike = (Characters ~= nil)
-
+isBloxStrike = (game.PlaceId == 14546522338 or game.PlaceId == 114234929420007)
 SkinsFolder = nil
+
 if isBloxStrike then
-    local assets = RS:WaitForChild("Assets", 2)
+    local assets = RS:WaitForChild("Assets", 5)
     if assets then
-        SkinsFolder = assets:WaitForChild("Skins", 2)
+        SkinsFolder = assets:WaitForChild("Skins", 5)
     end
 end
 
@@ -1145,15 +1136,16 @@ local knives = {
     ["Gut Knife"]      = {Offset = CFrame.new(0, -1.5, 0.5)},
 }
 
-vm, animator = nil, nil
-equipAnim, idleAnim, inspectAnim = nil, nil, nil
-HeavySwingAnim, Swing1Anim, Swing2Anim = nil, nil, nil
-renderSteppedConn, viewmodelLoopConn = nil, nil
+local vm, animator
+local equipAnim, idleAnim, inspectAnim
+local HeavySwingAnim, Swing1Anim, Swing2Anim
+local renderSteppedConn, viewmodelLoopConn
 
 local function isAlive()
-    if not Characters then return false end
-    local t  = Characters:FindFirstChild("Terrorists")
-    local ct = Characters:FindFirstChild("Counter-Terrorists")
+    local chars = workspace:FindFirstChild("Characters")
+    if not chars then return false end
+    local t  = chars:FindFirstChild("Terrorists")
+    local ct = chars:FindFirstChild("Counter-Terrorists")
     return (t and t:FindFirstChild(LP.Name)) or (ct and ct:FindFirstChild(LP.Name))
 end
 
@@ -1214,6 +1206,16 @@ local function attachAsset(folder, armPartName, assetModelName, finalName, offse
     motor.Parent = targetArm
 end
 
+local lastAttackTime = 0
+local lastLightAttackTime = 0
+local lastHeavyAttackTime = 0
+local lmbHeld = false
+local rmbHeld = false
+local ATTACK_COOLDOWN = 60 / 155  -- 155 BPM
+local HEAVY_COOLDOWN = 60 / 75    -- 75 BPM
+
+local ACTION_HEAVY = "HeavyAttackKnifeAction"
+
 local function handleAction(actionName, inputState, inputObject)
     if not spawned or not animator or not isAlive() then
         return Enum.ContextActionResult.Pass
@@ -1233,10 +1235,8 @@ local function handleAction(actionName, inputState, inputObject)
         inspectAnim.Stopped:Once(function() inspecting = false end)
 
     elseif actionName == ACTION_ATTACK then
-        -- Sol tık: 155 BPM ritmiyle tekrarlayan hafif saldırı
         if inputState == Enum.UserInputState.Begin then
             lmbHeld = true
-
             task.spawn(function()
                 while lmbHeld and spawned do
                     if inspecting then
@@ -1269,16 +1269,13 @@ local function handleAction(actionName, inputState, inputObject)
                     end
                 end
             end)
-
         elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
             lmbHeld = false
         end
 
     elseif actionName == ACTION_HEAVY then
-        -- Sağ tık: 75 BPM ritmiyle tekrarlayan ağır saldırı
         if inputState == Enum.UserInputState.Begin then
             rmbHeld = true
-
             task.spawn(function()
                 while rmbHeld and spawned do
                     if inspecting then
@@ -1306,7 +1303,6 @@ local function handleAction(actionName, inputState, inputObject)
                     end
                 end
             end)
-
         elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
             rmbHeld = false
         end
@@ -1459,10 +1455,11 @@ local IgnoreFolders = {
 }
 
 function getPlayerTeam()
-    if not Characters then return "CT" end
-    local ct = Characters:FindFirstChild("Counter-Terrorists")
+    local chars = workspace:FindFirstChild("Characters")
+    if not chars then return "CT" end
+    local ct = chars:FindFirstChild("Counter-Terrorists")
     if ct and ct:FindFirstChild(LP.Name) then return "CT" end
-    local t  = Characters:FindFirstChild("Terrorists")
+    local t  = chars:FindFirstChild("Terrorists")
     if t  and t:FindFirstChild(LP.Name) then return "T" end
     return "CT"
 end
@@ -1563,9 +1560,9 @@ local function SetupSkinUpdateLoop()
 			task.wait(0.2)
 			if SkinChangerEnabled and isAlive() and SkinsFolder then
 				for _, obj in camera:GetChildren() do
-					-- Attribute kontrolü yok, her zaman uygula (güncel kalsın)
 					local skinKey = getSkinKey(obj.Name)
-					if SelectedSkins[skinKey] then
+					local chosenSkin = SelectedSkins[skinKey]
+					if chosenSkin and obj:GetAttribute("SkinApplied") ~= chosenSkin then
 						applyWeaponSkin(obj)
 					end
 				end
