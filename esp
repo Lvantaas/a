@@ -11,19 +11,20 @@ local Mouse = LP:GetMouse()
 local camera = Workspace.CurrentCamera
 
 -- ===== CONSTANTS & HELPERS =====
-local C3 = Color3.fromRGB
-local HSV = Color3.fromHSV
-local Tag = "Lsantas"
-local Cons, Chams = {}, {}
-local isRunning = true
-local hasMouseSim = (typeof(mousemoverel) == "function")
+-- ===== CONSTANTS & HELPERS =====
+C3 = Color3.fromRGB
+HSV = Color3.fromHSV
+Tag = "Lsantas"
+Cons, Chams = {}, {}
+isRunning = true
+hasMouseSim = (typeof(mousemoverel) == "function")
 
 -- Shared GUI references for synchronization
-local WatermarkGui, WatermarkStroke, AccentBar, AccentCover, WatermarkLabel
-local rgbConnections = {}
+WatermarkGui, WatermarkStroke, AccentBar, AccentCover, WatermarkLabel = nil, nil, nil, nil, nil
+rgbConnections = {}
 
 -- Dynamic name resolver for hotkeys and GUI indicators
-local function GetInputName(input)
+function GetInputName(input)
 	if not input then return "None" end
 	if typeof(input) == "EnumItem" then
 		if input.Name == "MouseButton1" or input == Enum.UserInputType.MouseButton1 then
@@ -52,7 +53,7 @@ local function GetInputName(input)
 end
 
 -- Premium Gradient Applier (Purple to Cyan Cyber Theme)
-local function AddPremiumGradient(parent)
+function AddPremiumGradient(parent)
 	local grad = Instance.new("UIGradient")
 	grad.Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, C3(168, 85, 247)), -- Neon Purple
@@ -1091,12 +1092,24 @@ local ACTION_HEAVY   = "HeavyAttackKnifeAction"
 
 local RS = game:GetService("ReplicatedStorage")
 local CAS = game:GetService("ContextActionService")
-local Characters = workspace:WaitForChild("Characters")
+
+Characters = workspace:WaitForChild("Characters", 2)
+isBloxStrike = (Characters ~= nil)
+
+SkinsFolder = nil
+if isBloxStrike then
+    local assets = RS:WaitForChild("Assets", 2)
+    if assets then
+        SkinsFolder = assets:WaitForChild("Skins", 2)
+    end
+end
 
 -- Remove default viewmodel lighting transparency for Karambit
-pcall(function()
-	RS.Assets.Weapons.Karambit.Camera.ViewmodelLight.Transparency = 1
-end)
+if isBloxStrike then
+    pcall(function()
+        RS.Assets.Weapons.Karambit.Camera.ViewmodelLight.Transparency = 1
+    end)
+end
 
 local knives = {
     ["Karambit"]       = {Offset = CFrame.new(0, -1.5, 1.5)},
@@ -1106,12 +1119,13 @@ local knives = {
     ["Gut Knife"]      = {Offset = CFrame.new(0, -1.5, 0.5)},
 }
 
-local vm, animator
-local equipAnim, idleAnim, inspectAnim
-local HeavySwingAnim, Swing1Anim, Swing2Anim
-local renderSteppedConn, viewmodelLoopConn
+vm, animator = nil, nil
+equipAnim, idleAnim, inspectAnim = nil, nil, nil
+HeavySwingAnim, Swing1Anim, Swing2Anim = nil, nil, nil
+renderSteppedConn, viewmodelLoopConn = nil, nil
 
 local function isAlive()
+    if not Characters then return false end
     local t  = Characters:FindFirstChild("Terrorists")
     local ct = Characters:FindFirstChild("Counter-Terrorists")
     return (t and t:FindFirstChild(LP.Name)) or (ct and ct:FindFirstChild(LP.Name))
@@ -1412,18 +1426,32 @@ local GLOVES = {
     ["Sports Gloves"] = true
 }
 
-local SkinsFolder = RS:WaitForChild("Assets"):WaitForChild("Skins")
-
 local IgnoreFolders = {
     ["HE Grenade"] = true, ["Incendiary Grenade"] = true, ["Molotov"] = true,
     ["Smoke Grenade"] = true, ["Flashbang"] = true, ["Decoy Grenade"] = true,
     ["C4"] = true, ["CT Glove"] = true, ["T Glove"] = true
 }
 
-local function applyWeaponSkin(model)
-    if not model or not SkinChangerEnabled or not isAlive() then return end
+function getPlayerTeam()
+    if not Characters then return "CT" end
+    local ct = Characters:FindFirstChild("Counter-Terrorists")
+    if ct and ct:FindFirstChild(LP.Name) then return "CT" end
+    local t  = Characters:FindFirstChild("Terrorists")
+    if t  and t:FindFirstChild(LP.Name) then return "T" end
+    return "CT"
+end
 
-    local skinName = SelectedSkins[model.Name]
+function getSkinKey(weaponName)
+    if KNIVES[weaponName] or GLOVES[weaponName] then
+        return weaponName
+    end
+    return getPlayerTeam() .. ":" .. weaponName
+end
+
+local function applyWeaponSkin(model)
+    if not model or not SkinChangerEnabled or not isAlive() or not SkinsFolder then return end
+
+    local skinName = SelectedSkins[getSkinKey(model.Name)]
     if not skinName then return end
 
     pcall(function()
@@ -1487,7 +1515,7 @@ local skinChildConn
 local function SetupSkinListeners()
 	if skinChildConn then skinChildConn:Disconnect() end
 	skinChildConn = camera.ChildAdded:Connect(function(obj)
-		if not SkinChangerEnabled or not isAlive() then return end
+		if not SkinChangerEnabled or not isAlive() or not SkinsFolder then return end
 		-- Silah yüklenene kadar kısa aralıklarla 3 kez dene
 		for _, delay in ipairs({0.05, 0.2, 0.5}) do
 			task.delay(delay, function()
@@ -1507,10 +1535,11 @@ local function SetupSkinUpdateLoop()
 		while true do
 			if not isRunning then break end
 			task.wait(0.2)
-			if SkinChangerEnabled and isAlive() then
+			if SkinChangerEnabled and isAlive() and SkinsFolder then
 				for _, obj in camera:GetChildren() do
 					-- Attribute kontrolü yok, her zaman uygula (güncel kalsın)
-					if SelectedSkins[obj.Name] then
+					local skinKey = getSkinKey(obj.Name)
+					if SelectedSkins[skinKey] then
 						applyWeaponSkin(obj)
 					end
 				end
@@ -1777,11 +1806,11 @@ local function CreateTabButton(name, icon, tabName, order)
 	end)
 end
 
--- Always show Skins tab (BloxStrike oyununda kullanılıyor)
-local isBloxStrike = true
-
 -- Create tab scrolling structures
-local tabList = {"Chams", "Colors", "Aimbot", "Skins", "Settings"}
+local tabList = {"Chams", "Colors", "Aimbot", "Settings"}
+if isBloxStrike and SkinsFolder then
+    table.insert(tabList, 4, "Skins")
+end
 
 for _, tabName in ipairs(tabList) do
 	local f = Instance.new("ScrollingFrame")
@@ -1808,7 +1837,7 @@ CreateTabButton("COLORS", "🎨", "Colors", 2)
 CreateTabButton("AIMBOT", "🎯", "Aimbot", 3)
 
 local settingsOrder = 4
-if isBloxStrike then
+if isBloxStrike and SkinsFolder then
 	CreateTabButton("SKINS", "🔪", "Skins", 4)
 	settingsOrder = 5
 end
@@ -2174,7 +2203,7 @@ fcBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ===== TAB 4: SKINS (Redesigned) =====
-if isBloxStrike then
+if isBloxStrike and SkinsFolder then
     local skinsScrollFrame = Tabs["Skins"]
     local skinsTabFrame = skinsScrollFrame:FindFirstChildOfClass("Frame")
 
@@ -2220,11 +2249,11 @@ if isBloxStrike then
     -- ── SAĞ SÜTUN ─────────────────────────────────────────────
     -- Kategori tanımları
     local categories = {
-        { key = "knives",  label = "🔪 Knives",     icon = "🔪", color = C3(168, 85, 247),  weapons = {} },
-        { key = "gloves",  label = "🧤 Gloves",     icon = "🧤", color = C3(34, 197, 94),   weapons = {} },
-        { key = "ct",      label = "🛡️ CT Weapons", icon = "🛡️", color = C3(56, 189, 248),  weapons = {} },
-        { key = "t",       label = "💣 T Weapons",  icon = "💣", color = C3(251, 146, 60),  weapons = {} },
-        { key = "misc",    label = "📦 Misc",       icon = "📦", color = C3(148, 163, 184), weapons = {} },
+        { key = "knives",  label = "🔪 Knives",     icon = "🔪", color = C3(168, 85, 247),  weapons = {}, prefix = "" },
+        { key = "gloves",  label = "🧤 Gloves",     icon = "🧤", color = C3(34, 197, 94),   weapons = {}, prefix = "" },
+        { key = "ct",      label = "🛡️ CT Weapons", icon = "🛡️", color = C3(56, 189, 248),  weapons = {}, prefix = "CT:" },
+        { key = "t",       label = "💣 T Weapons",  icon = "💣", color = C3(251, 146, 60),  weapons = {}, prefix = "T:" },
+        { key = "misc",    label = "📦 Misc",       icon = "📦", color = C3(148, 163, 184), weapons = {}, prefix = "" },
     }
 
     -- Silahları kategorilere dağıt
@@ -2331,174 +2360,175 @@ if isBloxStrike then
         end
 
         local cat = categories[catIndex]
+        local skinPrefix = cat.prefix or ""
         skinCatHeader.Text = cat.icon .. "  " .. string.upper(cat.label:match("[^ ]+ (.+)") or cat.label)
 
         -- Her silah için bir satır
         for _, weaponName in ipairs(cat.weapons) do
-            local skinKey = weaponName
+            local skinKey = skinPrefix .. weaponName
             local wFolder = SkinsFolder:FindFirstChild(weaponName)
-            if not wFolder then continue end
-
-            local opts = {}
-            for _, sk in ipairs(wFolder:GetChildren()) do
-                table.insert(opts, sk.Name)
-            end
-            if #opts == 0 then continue end
-
-            if not SelectedSkins[skinKey] then
-                SelectedSkins[skinKey] = opts[1]
-            end
-
-            -- Satır kapsayıcı
-            local row = Instance.new("Frame")
-            row.Size = UDim2.new(1, -4, 0, 34)
-            row.BackgroundColor3 = C3(20, 20, 28)
-            row.BorderSizePixel = 0
-            row.Parent = skinScrollInner
-
-            local rowCorner = Instance.new("UICorner")
-            rowCorner.CornerRadius = UDim.new(0, 6)
-            rowCorner.Parent = row
-
-            -- Sol: silah adı
-            local weapLabel = Instance.new("TextLabel")
-            weapLabel.Size = UDim2.new(0.42, 0, 1, 0)
-            weapLabel.Position = UDim2.new(0, 8, 0, 0)
-            weapLabel.BackgroundTransparency = 1
-            weapLabel.Text = weaponName
-            weapLabel.TextColor3 = C3(200, 200, 215)
-            weapLabel.Font = Enum.Font.GothamMedium
-            weapLabel.TextSize = 10
-            weapLabel.TextXAlignment = Enum.TextXAlignment.Left
-            weapLabel.TextTruncate = Enum.TextTruncate.AtEnd
-            weapLabel.Parent = row
-
-            -- Sağ: dropdown butonu
-            local ddBtn = Instance.new("TextButton")
-            ddBtn.Size = UDim2.new(0.54, -4, 0, 22)
-            ddBtn.Position = UDim2.new(0.44, 0, 0.5, -11)
-            ddBtn.BackgroundColor3 = C3(30, 30, 40)
-            ddBtn.Text = SelectedSkins[skinKey]
-            ddBtn.TextColor3 = C3(255, 255, 255)
-            ddBtn.Font = Enum.Font.GothamBold
-            ddBtn.TextSize = 9
-            ddBtn.BorderSizePixel = 0
-            ddBtn.TextTruncate = Enum.TextTruncate.AtEnd
-            ddBtn.ZIndex = 5
-            ddBtn.Parent = row
-
-            local ddBtnCorner = Instance.new("UICorner")
-            ddBtnCorner.CornerRadius = UDim.new(0, 5)
-            ddBtnCorner.Parent = ddBtn
-            AddPremiumGradient(ddBtn)
-
-            -- Dropdown list — skinListCard'a parent olacak (kırpılmasın)
-            local ddList = Instance.new("ScrollingFrame")
-            ddList.Size = UDim2.new(0, 0, 0, 0)
-            ddList.BackgroundColor3 = C3(18, 18, 26)
-            ddList.BorderSizePixel = 0
-            ddList.ZIndex = 40
-            ddList.ScrollBarThickness = 2
-            ddList.ScrollBarImageColor3 = C3(168, 85, 247)
-            ddList.Visible = false
-            ddList.ClipsDescendants = true
-            ddList.Parent = skinListCard  -- scroll frame yerine kart içine
-
-            local ddListCorner = Instance.new("UICorner")
-            ddListCorner.CornerRadius = UDim.new(0, 5)
-            ddListCorner.Parent = ddList
-
-            local ddListStroke = Instance.new("UIStroke")
-            ddListStroke.Thickness = 1
-            ddListStroke.Color = C3(168, 85, 247)
-            ddListStroke.Transparency = 0.6
-            ddListStroke.Parent = ddList
-
-            local ddLayout = Instance.new("UIListLayout")
-            ddLayout.Padding = UDim.new(0, 1)
-            ddLayout.Parent = ddList
-
-            local ddOpen = false
-
-            local function closeDD()
-                ddOpen = false
-                ddList.Visible = false
-                ddList.Size = UDim2.new(0, 0, 0, 0)
-                if activeDropdown == closeDD then
-                    activeDropdown = nil
+            if wFolder then
+                local opts = {}
+                for _, sk in ipairs(wFolder:GetChildren()) do
+                    table.insert(opts, sk.Name)
                 end
-            end
-
-            local function toggleDD()
-                -- Önce varsa başka açık dropdown'u kapat
-                if activeDropdown and activeDropdown ~= closeDD then
-                    activeDropdown()
-                end
-
-                ddOpen = not ddOpen
-                if ddOpen then
-                    local h = math.clamp(#opts * 20 + 2, 20, 110)
-                    local btnAbs = ddBtn.AbsolutePosition
-                    local cardAbs = skinListCard.AbsolutePosition
-
-                    -- Butonun skinListCard'a göre konumu
-                    local relX = btnAbs.X - cardAbs.X
-                    local relY = btnAbs.Y - cardAbs.Y
-
-                    -- Yukarı mı aşağı mı açılsın?
-                    local cardH = skinListCard.AbsoluteSize.Y
-                    local openUp = (relY + 22 + h) > cardH
-
-                    if openUp then
-                        ddList.Position = UDim2.new(0, relX, 0, relY - h - 2)
-                    else
-                        ddList.Position = UDim2.new(0, relX, 0, relY + 22 + 2)
+                if #opts > 0 then
+                    if not SelectedSkins[skinKey] then
+                        SelectedSkins[skinKey] = opts[1]
                     end
 
-                    ddList.Size = UDim2.new(0, ddBtn.AbsoluteSize.X, 0, h)
-                    ddList.CanvasSize = UDim2.new(0, 0, 0, #opts * 20 + 2)
-                    ddList.Visible = true
-                    activeDropdown = closeDD
-                else
-                    closeDD()
-                end
-            end
+                    -- Satır kapsayıcı
+                    local row = Instance.new("Frame")
+                    row.Size = UDim2.new(1, -4, 0, 34)
+                    row.BackgroundColor3 = C3(20, 20, 28)
+                    row.BorderSizePixel = 0
+                    row.Parent = skinScrollInner
 
-            ddBtn.MouseButton1Click:Connect(toggleDD)
+                    local rowCorner = Instance.new("UICorner")
+                    rowCorner.CornerRadius = UDim.new(0, 6)
+                    rowCorner.Parent = row
 
-            for _, opt in ipairs(opts) do
-                local optBtn = Instance.new("TextButton")
-                optBtn.Size = UDim2.new(1, 0, 0, 19)
-                optBtn.BackgroundTransparency = 1
-                optBtn.Text = "  " .. opt
-                optBtn.TextColor3 = C3(180, 180, 195)
-                optBtn.Font = Enum.Font.GothamMedium
-                optBtn.TextSize = 9
-                optBtn.TextXAlignment = Enum.TextXAlignment.Left
-                optBtn.TextTruncate = Enum.TextTruncate.AtEnd
-                optBtn.BorderSizePixel = 0
-                optBtn.ZIndex = 50
-                optBtn.Parent = ddList
+                    -- Sol: silah adı
+                    local weapLabel = Instance.new("TextLabel")
+                    weapLabel.Size = UDim2.new(0.42, 0, 1, 0)
+                    weapLabel.Position = UDim2.new(0, 8, 0, 0)
+                    weapLabel.BackgroundTransparency = 1
+                    weapLabel.Text = weaponName
+                    weapLabel.TextColor3 = C3(200, 200, 215)
+                    weapLabel.Font = Enum.Font.GothamMedium
+                    weapLabel.TextSize = 10
+                    weapLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    weapLabel.TextTruncate = Enum.TextTruncate.AtEnd
+                    weapLabel.Parent = row
 
-                optBtn.MouseEnter:Connect(function()
-                    optBtn.BackgroundColor3 = C3(35, 35, 50)
-                    optBtn.BackgroundTransparency = 0
-                    optBtn.TextColor3 = C3(255, 255, 255)
-                end)
-                optBtn.MouseLeave:Connect(function()
-                    optBtn.BackgroundColor3 = C3(18, 18, 26)
-                    optBtn.BackgroundTransparency = 0.3
-                    optBtn.TextColor3 = C3(200, 200, 215)
-                end)
-                optBtn.MouseButton1Click:Connect(function()
-                    SelectedSkins[skinKey] = opt
-                    ddBtn.Text = opt
-                    closeDD()
-                    for _, obj in ipairs(camera:GetChildren()) do
-                        obj:SetAttribute("SkinApplied", nil)
-                        applyWeaponSkin(obj)
+                    -- Sağ: dropdown butonu
+                    local ddBtn = Instance.new("TextButton")
+                    ddBtn.Size = UDim2.new(0.54, -4, 0, 22)
+                    ddBtn.Position = UDim2.new(0.44, 0, 0.5, -11)
+                    ddBtn.BackgroundColor3 = C3(30, 30, 40)
+                    ddBtn.Text = SelectedSkins[skinKey]
+                    ddBtn.TextColor3 = C3(255, 255, 255)
+                    ddBtn.Font = Enum.Font.GothamBold
+                    ddBtn.TextSize = 9
+                    ddBtn.BorderSizePixel = 0
+                    ddBtn.TextTruncate = Enum.TextTruncate.AtEnd
+                    ddBtn.ZIndex = 5
+                    ddBtn.Parent = row
+
+                    local ddBtnCorner = Instance.new("UICorner")
+                    ddBtnCorner.CornerRadius = UDim.new(0, 5)
+                    ddBtnCorner.Parent = ddBtn
+                    AddPremiumGradient(ddBtn)
+
+                    -- Dropdown list — skinListCard'a parent olacak (kırpılmasın)
+                    local ddList = Instance.new("ScrollingFrame")
+                    ddList.Size = UDim2.new(0, 0, 0, 0)
+                    ddList.BackgroundColor3 = C3(18, 18, 26)
+                    ddList.BorderSizePixel = 0
+                    ddList.ZIndex = 40
+                    ddList.ScrollBarThickness = 2
+                    ddList.ScrollBarImageColor3 = C3(168, 85, 247)
+                    ddList.Visible = false
+                    ddList.ClipsDescendants = true
+                    ddList.Parent = skinListCard  -- scroll frame yerine kart içine
+
+                    local ddListCorner = Instance.new("UICorner")
+                    ddListCorner.CornerRadius = UDim.new(0, 5)
+                    ddListCorner.Parent = ddList
+
+                    local ddListStroke = Instance.new("UIStroke")
+                    ddListStroke.Thickness = 1
+                    ddListStroke.Color = C3(168, 85, 247)
+                    ddListStroke.Transparency = 0.6
+                    ddListStroke.Parent = ddList
+
+                    local ddLayout = Instance.new("UIListLayout")
+                    ddLayout.Padding = UDim.new(0, 1)
+                    ddLayout.Parent = ddList
+
+                    local ddOpen = false
+
+                    local function closeDD()
+                        ddOpen = false
+                        ddList.Visible = false
+                        ddList.Size = UDim2.new(0, 0, 0, 0)
+                        if activeDropdown == closeDD then
+                            activeDropdown = nil
+                        end
                     end
-                end)
+
+                    local function toggleDD()
+                        -- Önce varsa başka açık dropdown'u kapat
+                        if activeDropdown and activeDropdown ~= closeDD then
+                            activeDropdown()
+                        end
+
+                        ddOpen = not ddOpen
+                        if ddOpen then
+                            local h = math.clamp(#opts * 20 + 2, 20, 110)
+                            local btnAbs = ddBtn.AbsolutePosition
+                            local cardAbs = skinListCard.AbsolutePosition
+
+                            -- Butonun skinListCard'a göre konumu
+                            local relX = btnAbs.X - cardAbs.X
+                            local relY = btnAbs.Y - cardAbs.Y
+
+                            -- Yukarı mı aşağı mı açılsın?
+                            local cardH = skinListCard.AbsoluteSize.Y
+                            local openUp = (relY + 22 + h) > cardH
+
+                            if openUp then
+                                ddList.Position = UDim2.new(0, relX, 0, relY - h - 2)
+                            else
+                                ddList.Position = UDim2.new(0, relX, 0, relY + 22 + 2)
+                            end
+
+                            ddList.Size = UDim2.new(0, ddBtn.AbsoluteSize.X, 0, h)
+                            ddList.CanvasSize = UDim2.new(0, 0, 0, #opts * 20 + 2)
+                            ddList.Visible = true
+                            activeDropdown = closeDD
+                        else
+                            closeDD()
+                        end
+                    end
+
+                    ddBtn.MouseButton1Click:Connect(toggleDD)
+
+                    for _, opt in ipairs(opts) do
+                        local optBtn = Instance.new("TextButton")
+                        optBtn.Size = UDim2.new(1, 0, 0, 19)
+                        optBtn.BackgroundTransparency = 1
+                        optBtn.Text = "  " .. opt
+                        optBtn.TextColor3 = C3(180, 180, 195)
+                        optBtn.Font = Enum.Font.GothamMedium
+                        optBtn.TextSize = 9
+                        optBtn.TextXAlignment = Enum.TextXAlignment.Left
+                        optBtn.TextTruncate = Enum.TextTruncate.AtEnd
+                        optBtn.BorderSizePixel = 0
+                        optBtn.ZIndex = 50
+                        optBtn.Parent = ddList
+
+                        optBtn.MouseEnter:Connect(function()
+                            optBtn.BackgroundColor3 = C3(35, 35, 50)
+                            optBtn.BackgroundTransparency = 0
+                            optBtn.TextColor3 = C3(255, 255, 255)
+                        end)
+                        optBtn.MouseLeave:Connect(function()
+                            optBtn.BackgroundColor3 = C3(18, 18, 26)
+                            optBtn.BackgroundTransparency = 0.3
+                            optBtn.TextColor3 = C3(200, 200, 215)
+                        end)
+                        optBtn.MouseButton1Click:Connect(function()
+                            SelectedSkins[skinKey] = opt
+                            ddBtn.Text = opt
+                            closeDD()
+                            for _, obj in ipairs(camera:GetChildren()) do
+                                obj:SetAttribute("SkinApplied", nil)
+                                applyWeaponSkin(obj)
+                            end
+                        end)
+                    end
+                end
             end
         end
     end
@@ -2556,13 +2586,15 @@ if isBloxStrike then
     -- TÜM kategorilerdeki tüm silahlar için varsayılan skin seçimlerini önceden doldur
     -- (Menü açılmadan da skin uygulanabilsin)
     for _, cat in ipairs(categories) do
+        local pfx = cat.prefix or ""
         for _, weaponName in ipairs(cat.weapons) do
-            if not SelectedSkins[weaponName] then
+            local skinKey = pfx .. weaponName
+            if not SelectedSkins[skinKey] then
                 local wFolder = SkinsFolder:FindFirstChild(weaponName)
                 if wFolder then
                     local children = wFolder:GetChildren()
                     if #children > 0 then
-                        SelectedSkins[weaponName] = children[1].Name
+                        SelectedSkins[skinKey] = children[1].Name
                     end
                 end
             end
