@@ -408,7 +408,7 @@ task.spawn(function()
 	PlayPremiumSplash()
 	ShowNotification(
 		"Lsantas Hack Client",
-		"Cheat activated successfully!\nOpen the menu with[" .. GetInputName(Cfg.MenuKey) .. "] key.",
+		"Cheat activated successfully!\n[" .. GetInputName(Cfg.MenuKey) .. "] tuşu ile menüyü açabilirsiniz.",
 		6
 	)
 end)
@@ -1392,10 +1392,15 @@ local CT_ONLY = {
     ["FAMAS"] = true, ["M4A1-S"] = true, ["M4A4"] = true, ["AUG"] = true
 }
 
+local T_ONLY = {
+    ["Glock-18"] = true, ["Tec-9"] = true, ["MAC-10"] = true,
+    ["Galil-AR"] = true, ["AK-47"] = true, ["SG 553"] = true,
+}
+
 local SHARED = {
     ["P250"] = true, ["Desert Eagle"] = true, ["Dual Berettas"] = true,
     ["Negev"] = true, ["P90"] = true, ["Nova"] = true, ["XM1014"] = true,
-    ["AWP"] = true, ["SSG 08"] = true
+    ["AWP"] = true, ["SSG 08"] = true, ["Zeus"] = true,
 }
 
 local KNIVES = {
@@ -2225,11 +2230,17 @@ if isBloxStrike then
     -- Silahları kategorilere dağıt
     for name in pairs(KNIVES) do table.insert(categories[1].weapons, name) end
     for name in pairs(GLOVES) do table.insert(categories[2].weapons, name) end
+    -- CT: CT-exclusive + shared
     for name in pairs(CT_ONLY) do table.insert(categories[3].weapons, name) end
-    for name in pairs(SHARED) do table.insert(categories[4].weapons, name) end
+    for name in pairs(SHARED)  do table.insert(categories[3].weapons, name) end
+    -- T: T-exclusive + shared
+    for name in pairs(T_ONLY)  do table.insert(categories[4].weapons, name) end
+    for name in pairs(SHARED)  do table.insert(categories[4].weapons, name) end
+    -- Misc: bilinmeyen silahlar
     for _, folder in ipairs(SkinsFolder:GetChildren()) do
         local n = folder.Name
-        if not IgnoreFolders[n] and not KNIVES[n] and not GLOVES[n] and not CT_ONLY[n] and not SHARED[n] then
+        if not IgnoreFolders[n] and not KNIVES[n] and not GLOVES[n]
+           and not CT_ONLY[n] and not T_ONLY[n] and not SHARED[n] then
             table.insert(categories[5].weapons, n)
         end
     end
@@ -2324,6 +2335,7 @@ if isBloxStrike then
 
         -- Her silah için bir satır
         for _, weaponName in ipairs(cat.weapons) do
+            local skinKey = weaponName
             local wFolder = SkinsFolder:FindFirstChild(weaponName)
             if not wFolder then continue end
 
@@ -2333,8 +2345,8 @@ if isBloxStrike then
             end
             if #opts == 0 then continue end
 
-            if not SelectedSkins[weaponName] then
-                SelectedSkins[weaponName] = opts[1]
+            if not SelectedSkins[skinKey] then
+                SelectedSkins[skinKey] = opts[1]
             end
 
             -- Satır kapsayıcı
@@ -2366,7 +2378,7 @@ if isBloxStrike then
             ddBtn.Size = UDim2.new(0.54, -4, 0, 22)
             ddBtn.Position = UDim2.new(0.44, 0, 0.5, -11)
             ddBtn.BackgroundColor3 = C3(30, 30, 40)
-            ddBtn.Text = SelectedSkins[weaponName]
+            ddBtn.Text = SelectedSkins[skinKey]
             ddBtn.TextColor3 = C3(255, 255, 255)
             ddBtn.Font = Enum.Font.GothamBold
             ddBtn.TextSize = 9
@@ -2479,7 +2491,7 @@ if isBloxStrike then
                     optBtn.TextColor3 = C3(200, 200, 215)
                 end)
                 optBtn.MouseButton1Click:Connect(function()
-                    SelectedSkins[weaponName] = opt
+                    SelectedSkins[skinKey] = opt
                     ddBtn.Text = opt
                     closeDD()
                     for _, obj in ipairs(camera:GetChildren()) do
