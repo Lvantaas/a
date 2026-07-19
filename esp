@@ -104,6 +104,7 @@ local Cfg = {
 	SpeedValue = 50,
 	SkeletonEspEnabled = false,
 	SkeletonColor = C3(255, 255, 255),
+	InfJumpEnabled = false,
 }
 local menuOpen = false
 
@@ -135,6 +136,7 @@ local LANG = {
 		SPEED_ENABLED="Speed Hack",
 		SPEED_VALUE="Speed Value",
 		ENABLE_SKELETON="Skeleton ESP",
+		ENABLE_INF_JUMP="Infinite Jump",
 	},
 	TR = {
 		TAB_VISUALS="GORSELLER", TAB_COLORS="RENKLER", TAB_AIMBOT="AIMBOT", TAB_SKINS="SKINLER", TAB_SETTINGS="AYARLAR",
@@ -162,6 +164,7 @@ local LANG = {
 		SPEED_ENABLED="Hız Hilesi (Speed Hack)",
 		SPEED_VALUE="Hız Değeri",
 		ENABLE_SKELETON="Kemik ESP (Skeleton)",
+		ENABLE_INF_JUMP="Sonsuz Zıplama",
 	},
 }
 local function T(key)
@@ -2683,6 +2686,10 @@ CreateSlider(miscGroup, nil, 16, 150, Cfg.SpeedValue, function(val)
 	Cfg.SpeedValue = val
 end, "SPEED_VALUE")
 
+CreateToggle(miscGroup, nil, Cfg.InfJumpEnabled, function(state)
+	Cfg.InfJumpEnabled = state
+end, "ENABLE_INF_JUMP")
+
 -- ===== TAB 5: SETTINGS (Dual column layout) =====
 local settingsTab = Tabs["Settings"]:FindFirstChildOfClass("Frame")
 
@@ -3263,6 +3270,24 @@ local function SetupSpeed()
 end
 SetupSpeed()
 
+-- ===== INFINITE JUMP LOOP =====
+task.spawn(function()
+	while task.wait() do
+		if not isRunning then break end
+		if Cfg.InfJumpEnabled then
+			local char = LP.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Parent then
+				local isSpaceDown = UserInputService:IsKeyDown(Enum.KeyCode.Space)
+				local isChatting = UserInputService:GetFocusedTextBox() ~= nil
+				if isSpaceDown and not isChatting then
+					hum:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end
+	end
+end)
+
 -- ===== SKELETON ESP LOOP =====
 local skeletonConnection
 local function SetupSkeletonLoop()
@@ -3342,7 +3367,10 @@ _G.UnloadChams = function()
 	pcall(function()
 		local char = LP.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum then hum.WalkSpeed = 16 end
+		if hum then
+			hum.WalkSpeed = 16
+			hum.UseJumpPower = true
+		end
 	end)
 
 	if renderSteppedConn then renderSteppedConn:Disconnect() end
